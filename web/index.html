@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="google" content="notranslate" />
+    <!-- Include Eel JS -->
+    <script type="text/javascript" src="/eel.js"></script>
+    <!-- Include your CSS and JS files -->
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Include icon on Menubar-->
+    <link rel="icon" href="/img/image.ico" type="image/x-icon">
+    <script src="js/main.js" defer></script>
+    <title>Web Crawler Management</title>
+</head>
+<body class="notranslate">
+    <div class="container">
+        <h1>Web Crawler Management</h1>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('scheduled')">
+                Geplante Crawls
+            </button>
+            <button class="tab" onclick="switchTab('manual')">
+                Manueller Crawl
+            </button>
+        </div>
+
+        <div id="scheduled" class="tab-content active">
+            <h2>Geplante Website-Crawls</h2>
+            <button onclick="addNewScheduledSite()">
+                Neuer Crawl hinzufügen
+            </button>
+            <button onclick="manageEmails()">
+                Email-Benachrichtigungen
+            </button>
+            <button onclick="showSettings()" class="settings-button">
+                Einstellungen
+            </button>
+            <div id="settings-container"></div>
+            <div class="scheduled-sites" id="scheduled-sites-container">
+                <!-- Sites will be dynamically populated here -->
+            </div>
+        </div>
+
+        <div id="manual" class="tab-content">
+            <h2>Manueller Website-Crawl</h2>
+            <div class="form-group">
+                <label for="url">Website URL:</label>
+                <input type="text" id="url" placeholder="https://example.com" />
+            </div>
+
+            <div class="form-group">
+                <label>Suchbegriffe:</label>
+                <div class="keywords" id="manual-keywords">
+                    <!-- Keywords will be added here -->
+                </div>
+                <input
+                    type="text"
+                    id="new-keyword"
+                    placeholder="Neuen Suchbegriff eingeben"
+                    onkeypress="addKeywordOnEnter(event)"
+                />
+            </div>
+
+            <button onclick="startManualCrawl()">Crawling starten</button>
+
+            <div class="results">
+                <h2>Ergebnisse</h2>
+                <div id="crawling-results">Noch keine Ergebnisse verfügbar...</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -96,7 +96,8 @@ hiddenimports.extend([
     'engineio',
     'engineio.async_drivers',
     'engineio.async_drivers.threading',
-    'bottle'
+    'bottle',
+    'python3',
 ])
 
 for pkg in ['gevent', 'engineio', 'bottle_websocket']:

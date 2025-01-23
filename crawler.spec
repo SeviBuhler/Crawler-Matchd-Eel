@@ -7,7 +7,7 @@ from PyInstaller.building.api import PYZ
 block_cipher = None
 
 # Get the current directory
-current_dir = os.path.abspath(os.path.dirname('__file__'))
+current_dir = os.path.abspath(os.getcwd())
 
 # Collect all package data
 bins = []

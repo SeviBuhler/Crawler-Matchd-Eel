@@ -7,10 +7,7 @@ import logging
 import pystray
 from PIL import Image
 import threading
-import win32serviceutil
-import win32service
 from schedule import CrawlerScheduler
-import time
 
 ### Set up logging
 logging.basicConfig(
@@ -74,9 +71,7 @@ class CrawlerGUI:
             
             def create_menu():
                 return (
-                    pystray.MenuItem("Open GUI", self.open_gui),
-                    pystray.MenuItem("Start Service", self.start_service),
-                    pystray.MenuItem("Stop Service", self.stop_service),
+                    pystray.MenuItem("Open Application", self.open_gui),
                     pystray.MenuItem("Exit", self.exit_app)
                 )
                 
@@ -91,54 +86,6 @@ class CrawlerGUI:
         except Exception as e:
             logger.error(f"Error setting up tray: {e}")
             raise
-            
-    
-    def start_service(self, icon, item):
-        """Start the service"""
-        try:
-            logger.info("Attempting to start service...")
-            if sys.platform == 'win32':
-                try:
-                    win32serviceutil.StartService('JobCrawlerService')
-                    logger.info("Service started successfully")
-                except Exception as e:
-                    if hasattr(e, 'args') and e.args[0] == 5:
-                        self.run_as_admin('start_service')
-                    else:
-                        logger.error(f"Error starting service: {e}")
-                    
-        except Exception as e:
-            logger.error(f"Error starting service: {e}")
-        
-    def stop_service(self, icon, item):
-        """Stop the service"""
-        try:
-            logger.info("Attempting to stop service...")
-            if sys.platform == 'win32':
-                try:
-                    win32serviceutil.StopService('JobCrawlerService')
-                    logger.info("Service stopped successfully")
-                except Exception as e:
-                    if hasattr(e, 'args') and e.args[0] == 5:
-                        self.run_as_admin('stop_service')
-                    else:
-                        logger.error(f"Error stopping service: {e}")
-                        
-        except Exception as e:
-            logger.error(f"Error stopping service: {e}")
-            
-            
-    def run_as_admin(self, command):
-        """Helper to start the apllication as admin"""
-        import ctypes
-        ctypes.windll.shell32.ShellExecuteW(
-            None,
-            "runas",
-            sys.executable,
-            f'"{sys.argv[0]}" {command}',
-            None,
-            1
-        )
             
         
     def start_eel(self):
@@ -177,11 +124,6 @@ class CrawlerGUI:
             
             ### Initialize new Eel instance
             eel.init(web_path, allowed_extensions=['.js', '.html', '.css'])
-            
-            #@eel.expose
-            #def close_window():
-            #    ### This function can be called from JS
-            #    return True
             
             try:
                 options = {

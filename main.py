@@ -5,8 +5,6 @@ import os
 import sys
 import logging
 from gui import CrawlerGUI
-import win32serviceutil
-import win32service
 from startup_utils import add_to_startup, remove_from_startup, is_in_startup
 
 ### Get the application root directory
@@ -149,17 +147,17 @@ def delete_email(email_id):
         
 
 ### Start the application in installation mode
-def install_service():
-    try:
-        win32serviceutil.InstallService(
-            pythonClassString="service.CrawlerService",
-            serviceName="JobCrawlerService",
-            displayName="Job Crawler Service",
-            startType=win32service.SERVICE_AUTO_START
-        )
-        logger.info("Service installed successfully with auto-start enabled")
-    except Exception as e:
-        logger.error(F"Error installing service: {e}")
+##def install_service():
+##    try:
+##        win32serviceutil.InstallService(
+##            pythonClassString="service.CrawlerService",
+##            serviceName="JobCrawlerService",
+##            displayName="Job Crawler Service",
+##            startType=win32service.SERVICE_AUTO_START
+##        )
+##        logger.info("Service installed successfully with auto-start enabled")
+##    except Exception as e:
+##        logger.error(F"Error installing service: {e}")
     
 
 @eel.expose
@@ -185,11 +183,6 @@ def get_startup_status():
     except Exception as e:
         logger.error(f"Error getting startup status: {e}")
         return {"status": "error", "message": str(e)}
-
-    
-def remove_service():
-    win32serviceutil.RemoveService('JobCrawlerService')
-    print("Service removed successfully")
     
     
 def start_gui():
@@ -198,18 +191,8 @@ def start_gui():
 
 
 def main():
-    if len(sys.argv) > 1:
-        command = sys.argv[1]
-        if command == 'install':
-            install_service()
-        elif command == 'remove':
-            remove_service()
-        elif command == 'start_service':
-            win32serviceutil.StartService('JobCrawlerService')
-        elif command == 'stop_service':
-            win32serviceutil.StopService('JobCrawlerService')
-    else:
-        start_gui()
+    ### Start the GUI
+    start_gui()
 
 
 if __name__ == "__main__":

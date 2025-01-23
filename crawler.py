@@ -1127,11 +1127,3 @@ class Crawler:
         if self.db:
             self.db.close()
             print("Database connection closed")
-    
-
-
-#if __name__ == "__main__":
-#    crawler = Crawler('crawls.db') ### pass the db_path to the crawler
-#    start_url = "https://jobs.inside-it.ch/jobs/"
-#    keywords = ["praktikant", "praktikum", "praktikantin", "internship"]
-#    crawler.crawl(start_url, keywords, max_pages=10)

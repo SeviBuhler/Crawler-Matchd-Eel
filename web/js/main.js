@@ -771,9 +771,11 @@ async function checkStartupStatus() {
         if (result.status === 'success') {
             updateStartupToggle(result.enabled);
         } else {
+            updateStartupToggle(false);
             console.error('Error checking startup status:', result.message);
         }
     } catch (error) {
+        updateStartupToggle(false);
         console.error('Error checking startup status:', error);
     }
 }

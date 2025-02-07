@@ -9,8 +9,10 @@ logger = logging.getLogger('StartupUtils')
 def get_executable_path():
     """Get the path to the executable"""
     if getattr(sys, 'frozen', False):
+        executable_path = sys.executable
+        logger.info(f"Frozen executable path: {executable_path}")
         # Running as compiled executable
-        return sys.executable
+        return executable_path
     else:
         # Try to find the compiled executable
         app_dir = os.path.dirname(os.path.abspath(__file__))
@@ -21,7 +23,9 @@ def get_executable_path():
         ]
         
         for path in possible_paths:
+            logger.info(f"Checking possible path: {path}")
             if os.path.exists(path):
+                logger.info(f"Found executable at: {path}")
                 return path
                 
         # If no executable found, log error and return None

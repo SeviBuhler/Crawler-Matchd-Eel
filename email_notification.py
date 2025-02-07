@@ -10,8 +10,36 @@ from dotenv import load_dotenv
 from database_config import get_db_path
 import threading
 
-### Load environment variables
-load_dotenv()
+
+def get_env_path():
+    """
+    Find the .env file, prioritizing the AppData location
+    """
+    appdata = os.getenv('APPDATA')
+    if appdata:
+        appdata_env = os.path.join(appdata, 'JobCrawler', '.env')
+        if os.path.exists(appdata_env):
+            return appdata_env
+    
+    ### Fallback to script directory or other locations
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    potential_paths = [
+        os.path.join(script_dir, '.env'),
+        os.path.join(script_dir, '..', '.env')
+    ]
+    
+    for path in potential_paths:
+        if os.path.exists(path):
+            return path
+    
+    return None
+
+env_path = get_env_path()
+if env_path:
+    load_dotenv(env_path, override=True)
+    print(f"Loaded -env file from {env_path}")
+else:
+    print("Warning: No .env file found")
 
 ### set up logging
 logging.basicConfig(
@@ -19,6 +47,7 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger('EmailNotifications')
+
 
 class EmailNotifier:
     def __init__(self, db_path=None):
@@ -30,8 +59,16 @@ class EmailNotifier:
         self.smtp_username = os.getenv('SMTP_USERNAME')
         self.smtp_password = os.getenv('SMTP_PASSWORD')
         
-        if not all([self.smtp_username, self.smtp_password]):
-            raise ValueError("SMTP credentials not properly onfigured in .env file")
+        print("Environment Variables:")
+        print(f"SMTP_SERVER: {self.smtp_server}")
+        print(f"SMTP_PORT: {self.smtp_port}")
+        print(f"SMTP_USERNAME: {self.smtp_username}")
+        print(f"SMTP_PASSWORD set: {bool(self.smtp_password)}")
+        
+        if not all([self.smtp_server, self.smtp_port, self.smtp_username, self.smtp_password]):
+            error_msg = "Missing SMTP configuration. Please check your .env file."
+            print(error_msg)
+            raise ValueError(error_msg)
         
     
     def _get_connection(self):

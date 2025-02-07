@@ -5,6 +5,8 @@ import sys
 import subprocess
 import logging
 import re
+import tempfile
+import shutil
 from version import get_current_version, set_current_version
 
 ### Configure logging
@@ -122,7 +124,10 @@ def check_github_update():
             ### Ensure assets exist and have download URL's
             if latest.get('assets') and latest['assets'][0].get('browser_download_url'):
                 logger.info("Update available")
-                return latest['assets'][0]['browser_download_url']
+                return {
+                    'url': latest['assets'][0]['browser_download_url'],
+                    'version': latest_version
+                }
             else:
                 logger.warning("No valid download URL found")
         
@@ -138,23 +143,43 @@ def update_app():
         update_info = check_github_update()
         if update_info:
             logger.info(f"Downloading update from: {update_info}")
-            setup = requests.get(update_info)
+            setup = requests.get(update_info['url'])
             setup.raise_for_status()
             
-            setup_path = os.path.join(get_install_path(), "update_setup.exe")
+            
+            ### Use a temporary file to store the setup
+            temp_dir = os.path.join(os.getenv('TEMP') or '', 'JobCrawlerUpdate')
+            os.makedirs(temp_dir, exist_ok=True)
+            setup_path = os.path.join(temp_dir, "SetupJobCrawler.exe")
 
             with open(setup_path, "wb") as f:
                 f.write(setup.content)
             
             logger.info(f"Update download to: {setup_path}")
+            
+            ### Run the installer with elevation
+            try:
+                ### Use ShellExecute to with potential elevation
+                import subprocess
+                subprocess.Popen(['runas', '/user:Administrator', setup_path, '/SILENT'], shell=True)
+                
+                ### Update version before exit
+                set_current_version(update_info['version'])
+                update_version_info_file(update_info['version'])
+                
+                sys.exit()
+            except Exception as e:
+                logger.error(f"Error running installer: {e}")
+                ### Fallback to non-elevated subprocess
+                subprocess.run([setup_path, "/SILENT"])
+                
+                ### Update version before exit
+                set_current_version(update_info['version'])
+                update_version_info_file(update_info['version'])
+                
+                sys.exit()
+            
 
-            subprocess.run([setup_path, "/SILENT"])
-            
-            ### Update the version after successful update
-            set_current_version(update_info['version'])
-            
-            os.remove(setup_path)
-            sys.exit()
         else:
             logger.info("No updates performed")
     except Exception as e:

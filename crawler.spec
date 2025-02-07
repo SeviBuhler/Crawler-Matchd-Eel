@@ -56,7 +56,10 @@ resource_files = [
     '.env',
     'image.png',
     'requirements.txt',
-    
+    'database_config.py',
+    'env_utils.py',
+    'version.py',
+    'updater.py'
 ]
 
 for file in resource_files:

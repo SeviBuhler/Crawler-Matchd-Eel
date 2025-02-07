@@ -33,7 +33,7 @@ VSVersionInfo(
         StringStruct('FileDescription', 'Job Crawler Application'),
         StringStruct('FileVersion', '1.0.0'),
         StringStruct('InternalName', 'jobcrawler'),
-        StringStruct('LegalCopyright', '© 2024 Your Company Name. All rights reserved.'),
+        StringStruct('LegalCopyright', '© 2024 BHM. All rights reserved.'),
         StringStruct('OriginalFilename', 'JobCrawler.exe'),
         StringStruct('ProductName', 'Job Crawler'),
         StringStruct('ProductVersion', '1.0.0')])

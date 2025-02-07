@@ -221,7 +221,7 @@ class Crawler:
                 # Extract next URL
                 next_url = None
                 print(f"Found {len(content)} jobs")
-                return content, next_url
+                return content or [], next_url or None
         
         except Exception as e:
             print(f"Error during crawl: {e}")

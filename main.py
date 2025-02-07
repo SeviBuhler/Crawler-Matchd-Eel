@@ -8,7 +8,7 @@ from gui import CrawlerGUI
 from startup_utils import add_to_startup, remove_from_startup, is_in_startup
 from database_config import get_db_path
 from env_utils import ensure_env_file
-
+from updater import update_app
 
 
 ### Get the application root directory
@@ -232,10 +232,17 @@ def start_gui():
 
 
 def main():
+    ### Check for updates
+    try:
+        update_app()
+    except Exception as e:
+        logging.error(f"Update check failed: {e}")
+        
     ### Ensure .env file exists before astarting the application
     env_file = ensure_env_file()
     if not env_file:
         logging.warning("Could not create .env file. SMTP notifications may not work.")
+        
     ### Start the GUI
     start_gui()
 

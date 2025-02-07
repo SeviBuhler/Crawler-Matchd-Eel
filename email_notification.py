@@ -31,7 +31,7 @@ class EmailNotifier:
         self.smtp_password = os.getenv('SMTP_PASSWORD')
         
         if not all([self.smtp_username, self.smtp_password]):
-            raise ValueError("SMTP credentials not preperly onfigured in .env file")
+            raise ValueError("SMTP credentials not properly onfigured in .env file")
         
     
     def _get_connection(self):

@@ -169,7 +169,7 @@ class CrawlerScheduler:
                 return
             
             ### Store results in database.
-            conn = self._get_connection
+            conn = self._get_connection()
             cursor = conn.cursor()
             
             try:

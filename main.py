@@ -6,6 +6,8 @@ import sys
 import logging
 from gui import CrawlerGUI
 from startup_utils import add_to_startup, remove_from_startup, is_in_startup
+from database_config import get_db_path
+
 
 ### Get the application root directory
 if getattr(sys, 'frozen', False):
@@ -15,17 +17,13 @@ else:
 
 ### Set up logging directory in AppData
 appdata = os.getenv('APPDATA')
-if appdata is None:
-    # Fallback to a directory next to the executable if APPDATA is not available
-    LOG_DIR = os.path.join(APP_DIR, 'logs')
+if appdata:
+    LOG_DIR = os.path.join(appdata, 'JobCrawler', 'logs')
 else:
-    LOG_DIR = os.path.join(appdata, 'JobCrawler')
+    # Fallback to current directory in development
+    LOG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logs')
 
-if not os.path.exists(LOG_DIR):
-    try:
-        os.makedirs(LOG_DIR)
-    except Exception as e:
-        print(f"Error creating log directory: {e}")
+os.makedirs(LOG_DIR, exist_ok=True)
 
 ### Set up logging
 try:
@@ -43,10 +41,65 @@ except Exception as e:
 logger = logging.getLogger('WebInterface')
 
 
-### Initialize eel with your web files directory
-db_path = os.path.join(APP_DIR, "crawls.db")  ### Set the path to the database file
-db = Database(db_path) ### pass the db_path to the database
-crawler = Crawler(db_path) ### pass the db_path to the crawler
+def get_app_data_path():
+    """Get the application data directory path"""
+    if getattr(sys, 'frozen', False):
+        # Running as compiled executable
+        appdata = os.getenv('APPDATA')
+        if appdata is None:
+            raise EnvironmentError("APPDATA environment variable is not set")
+        app_data = os.path.join(appdata, 'JobCrawler')
+    else:
+        # Running in development
+        app_data = os.path.dirname(os.path.abspath(__file__))
+    
+    # Ensure the directory exists
+    os.makedirs(app_data, exist_ok=True)
+    return app_data
+
+
+#def initialize_database():
+#    """Initialize the database with proper path handling"""
+#    try:
+#        ### Get the correct database path
+#        db_path = os.path.join(get_app_data_path(), "crawls.db")
+#        logger.info(f"Setting up databse at: {db_path}")
+#        ### Create database instance
+#        db = Database(db_path)
+#        ### Initialize database if it doesn't exist
+#        if not os.path.exists(db_path):
+#            logging.info(f"Initializing new database at {db_path}")
+#            db.initialize_database()
+#        return db_path
+#    except Exception as e:
+#        logging.error(f"Error initializing database: {e}")
+#        raise
+
+# Modified main.py startup code
+def setup_application():
+    """Set up the application with proper database initialization"""
+    try:
+        ### Create and initalize database
+        db = Database()
+        if not os.path.exists(db.db_file):
+            db.initialize_database()
+        
+        # Create crawler instance
+        crawler = Crawler(db.db_file)
+        
+        return db, crawler
+        
+    except Exception as e:
+        logging.error(f"Error setting up application: {e}")
+        raise
+
+#new_db = Database()
+#new_db.initialize_database()
+#print(f'{new_db} created')
+#### Initialize eel with your web files directory
+#db_path = os.path.join(get_app_data_path(), "crawls.db")  ### Set the path to the database file
+#db = Database(db_path) ### pass the db_path to the database
+#crawler = Crawler(db_path) ### pass the db_path to the crawler
     
 
 @eel.expose
@@ -144,20 +197,6 @@ def delete_email(email_id):
     except Exception as e:
         logger.error(f"Error deleting email: {e}")
         return {"status": "error", "message": str(e)}
-        
-
-### Start the application in installation mode
-##def install_service():
-##    try:
-##        win32serviceutil.InstallService(
-##            pythonClassString="service.CrawlerService",
-##            serviceName="JobCrawlerService",
-##            displayName="Job Crawler Service",
-##            startType=win32service.SERVICE_AUTO_START
-##        )
-##        logger.info("Service installed successfully with auto-start enabled")
-##    except Exception as e:
-##        logger.error(F"Error installing service: {e}")
     
 
 @eel.expose
@@ -197,7 +236,8 @@ def main():
 
 if __name__ == "__main__":
     try:
+        db, crawler = setup_application()
         main()
     except Exception as e:
-        logger.exception(f"Critical error: {e}")
+        logging.exception(f"Critical error: {e}")
         sys.exit(1)

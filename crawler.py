@@ -4,9 +4,10 @@ from urllib3.util.retry import Retry
 from bs4 import BeautifulSoup
 from bs4 import Tag
 import sqlite3
+import threading
 import re
 import time
-
+from database_config import get_db_path
 
 class CustomHTTPAdapter(HTTPAdapter):
     def send(self, request, **kwargs):
@@ -17,11 +18,26 @@ class CustomHTTPAdapter(HTTPAdapter):
 
 
 class Crawler:
-    def __init__(self, db_path='crawls.db'):
+    def __init__(self, db_path=None):
+        self.db_path = db_path if db_path is not None else get_db_path()
+        self.thread_local = threading.local()
         self.visited_URLs = set()
         self.results = []
-        self.db = sqlite3.connect(db_path)
         self.ostschweiz_locations = self.get_ostschweiz_locations()
+        
+        
+    def _get_connection(self):
+        """Get or create a thread-local database connection"""
+        if not hasattr(self.thread_local, 'connection'):
+            self.thread_local.connection = sqlite3.connect(self.db_path)
+        return self.thread_local.connection
+    
+    def _close_connection(self):
+        """Close the thread-local connection if it exists"""
+        if hasattr(self.thread_local, 'connection'):
+            self.thread_local.connection.close()
+            del self.thread_local.connection
+
         
     def crawl(self, start_url: str, keywords: list[str], max_pages: int = 10):
         """Main crawl function that handles multiple pages"""
@@ -101,6 +117,9 @@ class Crawler:
             except Exception as e:
                 print(f"Error druing crawl: {e}")
                 current_url = None
+            finally:
+                self._close_connection()
+                
         
         ### Print final result nicely formatted
         print("\n" + "="*60)
@@ -129,7 +148,8 @@ class Crawler:
     def get_ostschweiz_locations(self):
         """Get all Ostschweiz municipalities from the database"""
         try:
-            cursor = self.db.cursor()
+            conn = self._get_connection()
+            cursor = conn.cursor()
             cursor.execute("""SELECT ortschaftsname, kanton FROM localities""")
             ostschweiz_locations = cursor.fetchall()
             return set([location[0].lower() for location in ostschweiz_locations])
@@ -1124,6 +1144,8 @@ class Crawler:
             
     
     def __del__(self):
-        if self.db:
-            self.db.close()
-            print("Database connection closed")
+        """Destructor to safely close database connection"""
+        try:
+            self._close_connection()
+        except Exception as e:
+            print(f"Error closing database connection: {e}")

@@ -3,7 +3,6 @@ import requests
 import os
 import sys
 import subprocess
-from cryptography.fernet import Fernet
 
 def get_install_path():
     try:
@@ -15,7 +14,7 @@ def get_install_path():
 
 def check_github_update():
     repo_url = "https://api.github.com/repos/SeviBuhler/Crawler-Matchd-Eel/releases/latest"
-    current_version = "0.1.1"  # Store in app or registry
+    current_version = "0.1.2"  # Store in app or registry
     
     response = requests.get(repo_url)
     latest = response.json()

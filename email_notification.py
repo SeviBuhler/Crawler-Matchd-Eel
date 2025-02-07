@@ -7,6 +7,8 @@ import sqlite3
 import logging
 import os
 from dotenv import load_dotenv
+from database_config import get_db_path
+import threading
 
 ### Load environment variables
 load_dotenv()
@@ -19,8 +21,9 @@ logging.basicConfig(
 logger = logging.getLogger('EmailNotifications')
 
 class EmailNotifier:
-    def __init__(self, db_path='crawls.db'):
-        self.db_path = db_path
+    def __init__(self, db_path=None):
+        self.db_path = db_path if db_path is not None else get_db_path()
+        self.thread_local = threading.local()
         self.timezone = pytz.timezone('Europe/Zurich')
         self.smtp_server = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
         self.smtp_port = int(os.getenv('SMTP_PORT', 587))
@@ -30,10 +33,24 @@ class EmailNotifier:
         if not all([self.smtp_username, self.smtp_password]):
             raise ValueError("SMTP credentials not preperly onfigured in .env file")
         
+    
+    def _get_connection(self):
+        """Get or create a thread-local database connection"""
+        if not hasattr(self.thread_local, 'connection'):
+            self.thread_local.connection = sqlite3.connect(self.db_path)
+        return self.thread_local.connection
+    
+    def _close_connection(self):
+        """Close the thread-local connection if it exists"""
+        if hasattr(self.thread_local, 'connection'):
+            self.thread_local.connection.close()
+            del self.thread_local.connection
+    
+       
     def get_todays_results(self):
         """Get all results from today"""
         try:
-            conn = sqlite3.connect(self.db_path)
+            conn = self._get_connection()
             cursor = conn.cursor()
             
             ### Get today's date in the correct timezone
@@ -55,11 +72,14 @@ class EmailNotifier:
         except Exception as e:
             logger.error(f"Error getting today's results: {e}")
             return []
+        finally:
+            self._close_connection()
+            
     
     def get_recipient_emails(self):
         """Get all recipient emails"""
         try:
-            conn = sqlite3.connect(self.db_path)
+            conn = self._get_connection()
             cursor = conn.cursor()
             
             cursor.execute("SELECT email FROM emails")
@@ -71,6 +91,9 @@ class EmailNotifier:
         except Exception as e:
             logger.error(f"Error getting recipient emails: {e}")
             return []
+        finally:
+            self._close_connection()
+    
     
     def format_email_content(self, results):
         """Format the email content"""

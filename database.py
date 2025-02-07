@@ -1,19 +1,39 @@
 import sqlite3
 import logging
 import os
-from localities_data import LOCALITIES_DATA 
+from localities_data import LOCALITIES_DATA
+from database_config import get_db_path
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class Database:
-    def __init__(self, db_file='crawls.db'):
-        self.db_file = db_file
-        self.initialize_database()
+    def __init__(self):
+        """Initalize Database with path from configuration"""
+        self.db_file = get_db_path()
+        self.ensure_db_directory()
+        
+    def ensure_db_directory(self):
+        """Ensure the database directory exists"""
+        try:
+            db_dir = os.path.dirname(self.db_file)
+            if not os.path.exists(db_dir):
+                logger.info(f"Creating database directory: {db_dir}")
+                ### Create parent directory if it doesn't exist
+                os.makedirs(db_dir, exist_ok=True)
+                ### Set permissions
+                os.chmod(self.db_file, 0o666)
+                logger.info(f"Database directory created successfully")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to initialize databse directory: {e}")
+            return False
         
     def initialize_database(self):
         """Initialize the database with tables and populate localities"""
+        print(f"Initializing database at {self.db_file}")
         db_exists = os.path.exists(self.db_file)
         conn =sqlite3.connect(self.db_file)
         cursor = conn.cursor()
@@ -21,15 +41,15 @@ class Database:
         try:
             ### Create tables
             self.create_tables(cursor)
-            
             ### If this is a new database, popiulate localities
             if not db_exists:
                 self.populate_localities(cursor)
-                
             conn.commit()
+            logger.info("Database initialized successfully")
         except Exception as e:
             logger.error(f"Error initializing database: {e}")
             conn.rollback()
+            raise
         finally:
             conn.close()
             

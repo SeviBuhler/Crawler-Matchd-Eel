@@ -1,11 +1,13 @@
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from datetime import datetime
-import pytz
+from pytz import timezone
 import sqlite3
 from crawler import Crawler
 import logging
 from email_notification import send_daily_email_report
+from database_config import get_db_path
+import threading
 
 ### Set up logging
 logging.basicConfig(
@@ -16,13 +18,27 @@ logger = logging.getLogger('Scheduler')
 
 
 class CrawlerScheduler:
-    def __init__(self, db_path='crawls.db'):
-        self.db_path = db_path
+    def __init__(self):
+        self.db_path = get_db_path()
+        self.thread_local = threading.local()
         self.scheduler = BackgroundScheduler()
-        self.timezone = pytz.timezone('Europe/Zurich')
+        self.timezone = timezone('Europe/Zurich')
         self.daily_crawls_complete = False
         self.active_crawls = set()
         
+    
+    def _get_connection(self):
+        """Get or create a thread-local database connection"""
+        if not hasattr(self.thread_local, 'connection'):
+            self.thread_local.connection = sqlite3.connect(self.db_path)
+        return self.thread_local.connection
+
+    def _close_connection(self):
+        """Close the thread-local connection if it exists"""
+        if hasattr(self.thread_local, 'connection'):
+            self.thread_local.connection.close()
+            del self.thread_local.connection
+    
     
     def start(self):
         """Start the scheduler and load all crawls from database"""
@@ -76,7 +92,7 @@ class CrawlerScheduler:
     def update_crawl_schedules(self):
         """Check database for crawls and update scheduler accordingly"""
         try:
-            conn = sqlite3.connect(self.db_path)
+            conn = self._get_connection()
             cursor = conn.cursor()
             
             ### Get all crawls with their keywords
@@ -127,11 +143,13 @@ class CrawlerScheduler:
             
             for job_id in scheduled_jobs:
                 self.scheduler.remove_job(job_id)
-            
+                
             conn.close()
             
         except Exception as e:
             print(f'Error updating crawl schedules: {e}')
+        finally:
+            self._close_connection()
         
     
     def execute_crawl(self, crawl_id, url, keywords):
@@ -151,7 +169,7 @@ class CrawlerScheduler:
                 return
             
             ### Store results in database.
-            conn = sqlite3.connect(self.db_path)
+            conn = self._get_connection
             cursor = conn.cursor()
             
             try:
@@ -193,8 +211,7 @@ class CrawlerScheduler:
                 logger.info(f"Completed crawl {crawl_id} - Added {new_jobs} new jobs, {existing_jobs} existing jobs")
             
             finally:
-                conn.close()
-                        
+                conn.close()                        
         except Exception as e:
             logger.error(f'Error executing crawl {crawl_id}: {e}')
         
@@ -203,6 +220,7 @@ class CrawlerScheduler:
             ### Check if this was the last  active crawl for the day
             if not self.active_crawls:
                 self.check_and_send_daily_report()
+            self._close_connection()
                 
     def __del__(self):
         """Clean up resources when the schedluar is stopped"""

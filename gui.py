@@ -8,6 +8,8 @@ import pystray
 from PIL import Image
 import threading
 from schedule import CrawlerScheduler
+import threading
+import time
 
 ### Set up logging
 logging.basicConfig(
@@ -29,17 +31,15 @@ class CrawlerGUI:
         else:
             self.base_path = os.path.dirname(os.path.abspath(__file__))
                         
-        self.db_path = os.path.join(APP_DIR, "crawls.db")
-        self.db = Database(self.db_path)
-        self.crawler = Crawler(self.db_path)
+        self.db = Database()
+        self.crawler = Crawler(self.db.db_file)
         self.icon = None
         self.eel_thread = None
-        self.scheduler = None
         self.eel_started = False
         self.current_port = None
         self.chrome_pid = None  ### Store the PID of the Chrome process
         self.is_shutting_down = False
-        
+        self.scheduler = None      
         
         ### Ensure the icon exists before starting the tray
         self.icon_path = os.path.join(self.base_path, 'image.ico')
@@ -48,11 +48,34 @@ class CrawlerGUI:
             raise FileNotFoundError(f"Icon not found: {self.icon_path}")
         
         self.setup_tray()
-        self.start_scheduler()
-    
+        
+        ### Start background initialization
+        self.init_thread = threading.Thread(target=self.background_init, daemon=True)
+        self.init_thread.start()  
+        
+        
+    def background_init(self):
+        """Initialize heavy components in the background"""
+        logger.info("Background initialization started")
+        start_time = time.time()
+        
+        try:
+            ### Initialize database
+            self.db = Database()
+            
+            def delayed_init():
+                self.crawler = Crawler(self.db.db_file)
+                self.start_scheduler()
+
+            threading.Thread(target=delayed_init, daemon=True).start()
+            print(f"Background initialization completed in {time.time() - start_time:.2f} seconds")
+            
+        except Exception as e:
+            logger.error(f"Background initialization failed: {e}")
+            
     
     def open_gui(self, icon, item):
-        """Open the Guid in a new thread"""
+        """Open the Gui in a new thread"""
         logger.info("Attempting to open GUI...")
         
         if not self.eel_started:
@@ -89,7 +112,7 @@ class CrawlerGUI:
             
         
     def start_eel(self):
-        """Start the eel web interface"""
+        """Start the eel web interface in seperate thread"""
         import socket
         
         def find_free_port():
@@ -102,54 +125,62 @@ class CrawlerGUI:
                     except OSError:
                         continue
             return None
-            
-        try:
-            if getattr(sys, 'frozen', False):
-                web_path = os.path.join(sys._MEIPASS, 'web') # type: ignore
-            else:
-                web_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'web')
-                
-            if not os.path.exists(web_path):
-                raise Exception(f"Web path not found: {web_path}")
-            
-            logger.info(f"Starting eel with path: {web_path}")
-            
-            ### Find an available port
-            port = find_free_port()
-            if port is None:
-                raise Exception("No available ports found")
-            
-            self.current_port = port
-            logger.info(f"Using port: {port}")
-            
-            ### Initialize new Eel instance
-            eel.init(web_path, allowed_extensions=['.js', '.html', '.css'])
-            
+        
+        def run_eel():
+            """Run the Eel web interface"""
             try:
-                options = {
-                    'mode': 'chrome',
-                    'port': port,
-                    'size': (1200, 800),
-                    'disable_cache': True,
-                    'cmdline_args': [
-                        '--disable-http-cache',
-                        '--user-data-dir=' + os.path.join(APP_DIR, 'chrome_data'),
-                        '--new-window',  ### Force new window
-                        '--disable-features=PromptOnExit' ### Disable exit prompt
-                    ]
-                }
-                
-                eel.start('index.html', **options)
-                
-            except (SystemExit, KeyboardInterrupt):
-                logger.info("Eel window closed normally")
+                if getattr(sys, 'frozen', False):
+                    web_path = os.path.join(sys._MEIPASS, 'web') # type: ignore
+                else:
+                    web_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'web')
+
+                if not os.path.exists(web_path):
+                    raise Exception(f"Web path not found: {web_path}")
+
+                logger.info(f"Starting eel with path: {web_path}")
+
+                ### Find an available port
+                port = find_free_port()
+                if port is None:
+                    raise Exception("No available ports found")
+
+                self.current_port = port
+                logger.info(f"Using port: {port}")
+
+                ### Initialize new Eel instance
+                eel.init(web_path, allowed_extensions=['.js', '.html', '.css'])
+
+                try:
+                    options = {
+                        'mode': 'chrome',
+                        'port': port,
+                        'size': (1200, 800),
+                        'disable_cache': True,
+                        'cmdline_args': [
+                            '--disable-http-cache',
+                            '--user-data-dir=' + os.path.join(APP_DIR, 'chrome_data'),
+                            '--new-window',  ### Force new window
+                            '--disable-features=PromptOnExit' ### Disable exit prompt
+                        ]
+                    }
+
+                    eel.start('index.html', **options)
+
+                except (SystemExit, KeyboardInterrupt):
+                    logger.info("Eel window closed normally")
+                except Exception as e:
+                    logger.error(f"Error starting eel: {e}")
+
             except Exception as e:
                 logger.error(f"Error starting eel: {e}")
-            
-        except Exception as e:
-            logger.error(f"Error starting eel: {e}")
-        finally:
-            self.cleanup_eel()
+            finally:
+                self.cleanup_eel()
+
+        ### Use therading to run Eel
+        eel_thread = threading.Thread(target=run_eel, daemon=True)
+        eel_thread.start()
+        
+        self.eel_started = True
                 
     
     def cleanup_eel(self):

@@ -3,6 +3,7 @@ from PyInstaller.utils.hooks import collect_all, collect_submodules
 from PyInstaller.building.build_main import Analysis
 from PyInstaller.building.api import EXE, COLLECT
 from PyInstaller.building.api import PYZ
+import sys
 
 block_cipher = None
 
@@ -105,9 +106,10 @@ for pkg in ['gevent', 'engineio', 'bottle_websocket']:
     bins.extend(tmp_ret[0])
     datas.extend(tmp_ret[1])
     hiddenimports.extend(tmp_ret[2])
+    
 
 a = Analysis(
-    ['main.py'],  # Your main script
+    ['main.py'],
     pathex=[current_dir],
     binaries=bins,
     datas=datas,
@@ -140,13 +142,13 @@ exe = EXE(
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=False,  # Set to True initially for debugging, change to False for release
+    console=True,  
     disable_windowed_traceback=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
     icon='image.ico',  # Path to your icon file
-    version='version_info_file.txt'  # We'll create this file for version information
+    version='version_info_file.txt'
 )
 
 coll = COLLECT(

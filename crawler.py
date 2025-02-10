@@ -144,7 +144,6 @@ class Crawler:
         return all_content
     
     
-    
     def get_ostschweiz_locations(self):
         """Get all Ostschweiz municipalities from the database"""
         try:
@@ -176,14 +175,13 @@ class Crawler:
         return False
     
     
-    
     def crawl_benedict(self, url, keywords):
         """Crawl function for Benedict"""
         print(f"Crawling Benedict URL: {url}")
         try:
             response = requests.get(url)
             soup = BeautifulSoup(response.content, 'html.parser')
-         
+        
             ### Then find all H2 elements in the div
             ### Extract parent element of listed jobs
             if soup:

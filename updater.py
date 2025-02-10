@@ -2,11 +2,10 @@ import winreg
 import requests
 import os
 import sys
-import subprocess
 import logging
 import re
-import tempfile
-import shutil
+import tkinter as tk
+from tkinter import messagebox
 from version import get_current_version, set_current_version
 
 ### Configure logging
@@ -21,8 +20,24 @@ def update_version_info_file(new_version):
     Update the version_info_file.txt with new version information
     """
     try:
+        ### Determine the path to version_info_file.txt
+        if getattr(sys, 'frozen', False):
+            ### If running as compiled executabel
+            base_path = os.path.dirname(sys.executable)
+            logger.info(f"Executable path: {sys.executable}")
+            logger.info(f"Base Path is: {base_path}")
+            version_file_path = os.path.join(base_path, "_internal", "version_info_file.txt")
+        else:
+            ### If running in development
+            base_path = os.path.dirname(os.path.abspath(__file__))
+            logger.info(f"Base Path is: {base_path}")
+            version_file_path = os.path.join(base_path, "version_info_file.txt")
+                
+        logger.info(f"Attempting to update version file at: {version_file_path}")
+        logger.info(f"File exists: {os.path.exists(version_file_path)}")
+        
         ### Read the current version info file
-        with open('version_info_file.txt', 'r') as file:
+        with open(version_file_path, 'r') as file:
             content = file.read()
         
         ### Parse version string into 4-component tuple
@@ -60,7 +75,7 @@ def update_version_info_file(new_version):
         )
         
         ### Write back to the file
-        with open('version_info_file.txt', 'w') as file:
+        with open(version_file_path, 'w') as file:
             file.write(content)
         
         return True
@@ -68,6 +83,7 @@ def update_version_info_file(new_version):
     except Exception as e:
         logger.error(f"Error updating version info file: {e}")
         return False
+
 
 def compare_versions(v1, v2):
     """
@@ -100,7 +116,7 @@ def get_install_path():
     try:
         key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\BHM\JobCrawler")
         path = winreg.QueryValueEx(key, "InstallLocation")[0]
-        logger.info(f"INstall path found: {path}")
+        logger.info(f"Install path found: {path}")
         return path
     except WindowsError:
         logger.warning("Could not find install path in registry, using executable directory")
@@ -137,53 +153,70 @@ def check_github_update():
         logger.error(f"Error checking for updates: {e}")
         return None
     
-
+### update funktioniert bisher noch nicht. beim programmstart wird auf neue updates geprüft und auch gefunden, jedoch wird das setup nicht ausgeführt. 
+### Das programm wird geschlossen und nichts passiert. nach ca 1 minute habe ich das programm neu gestartet und dann stand die aktuelle version da und gemäss application sei diese  aktuell. das stimmte auch
 def update_app():
     try:
         update_info = check_github_update()
         if update_info:
-            logger.info(f"Downloading update from: {update_info}")
-            setup = requests.get(update_info['url'])
-            setup.raise_for_status()
+            ### Show update notifiaction
+            root = tk.Tk()
+            root.withdraw()
+            root.attributes("-topmost", True) ### Brint the prompt to the front
             
+            ### Show meassage box
+            response = messagebox.askyesno(
+                "Update available",
+                f"A new version {update_info['version']} for your JobCrawler is available.\n\nDo you want to install the update now?\n\nPlease follow the installation window that will open."
+            )
+            root.attributes("-topmost", False) ### Remove the topmost attribute
             
-            ### Use a temporary file to store the setup
-            temp_dir = os.path.join(os.getenv('TEMP') or '', 'JobCrawlerUpdate')
-            os.makedirs(temp_dir, exist_ok=True)
-            setup_path = os.path.join(temp_dir, "SetupJobCrawler.exe")
+            if response: 
+                logger.info(f"Downloading update from: {update_info}")
+                setup = requests.get(update_info['url'])
+                setup.raise_for_status()
 
-            with open(setup_path, "wb") as f:
-                f.write(setup.content)
-            
-            logger.info(f"Update download to: {setup_path}")
-            
-            ### Run the installer with elevation
-            try:
-                ### Use ShellExecute to with potential elevation
-                import subprocess
-                subprocess.Popen(['runas', '/user:Administrator', setup_path, '/SILENT'], shell=True)
-                
-                ### Update version before exit
-                set_current_version(update_info['version'])
-                update_version_info_file(update_info['version'])
-                
-                sys.exit()
-            except Exception as e:
-                logger.error(f"Error running installer: {e}")
-                ### Fallback to non-elevated subprocess
-                subprocess.run([setup_path, "/SILENT"])
-                
-                ### Update version before exit
-                set_current_version(update_info['version'])
-                update_version_info_file(update_info['version'])
-                
-                sys.exit()
-            
+                ### Use a temporary file to store the setup
+                temp_dir = os.path.join(os.getenv('TEMP') or '', 'JobCrawlerUpdate')
+                os.makedirs(temp_dir, exist_ok=True)
+                setup_path = os.path.join(temp_dir, "SetupJobCrawler.exe")
 
+                with open(setup_path, "wb") as f:
+                    f.write(setup.content)
+
+                logger.info(f"Update download to: {setup_path}")
+
+                ### Run the installer with elevation
+                try:
+                    ### Update version before
+                    set_current_version(update_info['version'])
+                    update_version_info_file(update_info['version'])
+                    
+                    ### Use ShellExecute to with potential elevation
+                    import subprocess
+                    try:
+                        subprocess.Popen(setup_path)
+                        logger.info("Setup started")
+                    except Exception as e:
+                        logger.error(f"Error starting installer: {e}")
+                        return False
+
+                    logger.info("Update downloaded.")
+                    sys.exit()
+                except Exception as e:
+                    logger.error(f"Error running installer: {e}")
+                    return False
+            
+            root.destroy()
+            return False
+        
         else:
             logger.info("No updates performed")
+            return False
+        
     except Exception as e:
         logger.error(f"Update failed: {e}")
+        return False
         
 
 if __name__ == "__main__":

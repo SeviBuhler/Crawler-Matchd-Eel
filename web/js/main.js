@@ -722,7 +722,7 @@ function showSettings() {
             <h3>Einstellungen</h3>
             <div class="settings-section">
                 <div class="setting-item">
-                    <label class="setting-label">Mit Windows starten</label>
+                    <label class="setting-label">Crawler mit Windows starten</label>
                     <div class="toggle-switch">
                         <input type="checkbox" id="startupToggle" onchange="toggleStartup()">
                         <label for="startupToggle"></label>
@@ -769,7 +769,7 @@ async function checkStartupStatus() {
     try {
         const result = await eel.get_startup_status()();
         if (result.status === 'success') {
-            updateStartupToggle(result.enabled);
+            updateStartupToggle(result.enabled || false);
         } else {
             updateStartupToggle(false);
             console.error('Error checking startup status:', result.message);
@@ -783,7 +783,7 @@ async function checkStartupStatus() {
 function updateStartupToggle(enabled) {
     const toggle = document.getElementById('startupToggle');
     if (toggle) {
-        toggle.checked = enabled;
+        toggle.checked = enabled === ture ? true : false;
     }
 }
 

@@ -6,7 +6,6 @@ import sys
 import logging
 from gui import CrawlerGUI
 from startup_utils import add_to_startup, remove_from_startup, is_in_startup
-from database_config import get_db_path
 from env_utils import ensure_env_file
 from updater import update_app
 
@@ -60,23 +59,6 @@ def get_app_data_path():
     return app_data
 
 
-#def initialize_database():
-#    """Initialize the database with proper path handling"""
-#    try:
-#        ### Get the correct database path
-#        db_path = os.path.join(get_app_data_path(), "crawls.db")
-#        logger.info(f"Setting up databse at: {db_path}")
-#        ### Create database instance
-#        db = Database(db_path)
-#        ### Initialize database if it doesn't exist
-#        if not os.path.exists(db_path):
-#            logging.info(f"Initializing new database at {db_path}")
-#            db.initialize_database()
-#        return db_path
-#    except Exception as e:
-#        logging.error(f"Error initializing database: {e}")
-#        raise
-
 # Modified main.py startup code
 def setup_application():
     """Set up the application with proper database initialization"""
@@ -95,14 +77,6 @@ def setup_application():
         logging.error(f"Error setting up application: {e}")
         raise
 
-#new_db = Database()
-#new_db.initialize_database()
-#print(f'{new_db} created')
-#### Initialize eel with your web files directory
-#db_path = os.path.join(get_app_data_path(), "crawls.db")  ### Set the path to the database file
-#db = Database(db_path) ### pass the db_path to the database
-#crawler = Crawler(db_path) ### pass the db_path to the crawler
-    
 
 @eel.expose
 def crawl(url, keywords): 

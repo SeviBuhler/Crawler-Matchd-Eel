@@ -153,8 +153,7 @@ def check_github_update():
         logger.error(f"Error checking for updates: {e}")
         return None
     
-### update funktioniert bisher noch nicht. beim programmstart wird auf neue updates geprüft und auch gefunden, jedoch wird das setup nicht ausgeführt. 
-### Das programm wird geschlossen und nichts passiert. nach ca 1 minute habe ich das programm neu gestartet und dann stand die aktuelle version da und gemäss application sei diese  aktuell. das stimmte auch
+
 def update_app():
     try:
         update_info = check_github_update()
@@ -187,11 +186,7 @@ def update_app():
                 logger.info(f"Update download to: {setup_path}")
 
                 ### Run the installer with elevation
-                try:
-                    ### Update version before
-                    set_current_version(update_info['version'])
-                    update_version_info_file(update_info['version'])
-                    
+                try:                    
                     ### Use ShellExecute to with potential elevation
                     import subprocess
                     try:
@@ -200,7 +195,11 @@ def update_app():
                     except Exception as e:
                         logger.error(f"Error starting installer: {e}")
                         return False
-
+                    
+                    ### Update version before
+                    set_current_version(update_info['version'])
+                    update_version_info_file(update_info['version'])
+                    
                     logger.info("Update downloaded.")
                     sys.exit()
                 except Exception as e:

@@ -34,7 +34,7 @@ def ensure_env_file():
         if not os.path.exists(env_path):
             ### Create a template .env file
             with open(env_path, 'w') as f:
-                f.write("# SMTP configuration fo JobCrawler\n")
+                f.write("# SMTP configuration for JobCrawler\n")
                 f.write("SMTP_SERVER=smtp.gmail.com")
                 f.write("SMTP_PORT=587")
                 f.write("SMTP_USERNAME=sevibuhler@gmail.com")

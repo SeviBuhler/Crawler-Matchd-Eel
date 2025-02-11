@@ -26,7 +26,7 @@ def update_version_info_file(new_version):
             base_path = os.path.dirname(sys.executable)
             logger.info(f"Executable path: {sys.executable}")
             logger.info(f"Base Path is: {base_path}")
-            version_file_path = os.path.join(base_path, "_internal", "version_info_file.txt")
+            version_file_path = r"C:\Program Files\JobCrawler\_internal\version_info_file.txt"
         else:
             ### If running in development
             base_path = os.path.dirname(os.path.abspath(__file__))
@@ -63,7 +63,6 @@ def update_version_info_file(new_version):
                 lines[i] = f"        StringStruct('ProductVersion', 'v{clean_version}')])"
                 
         updated_content = '\n'.join(lines)
-        
         
         ### Write back to the file
         with open(version_file_path, 'w') as file:

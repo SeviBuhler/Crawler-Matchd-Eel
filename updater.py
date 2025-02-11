@@ -40,44 +40,36 @@ def update_version_info_file(new_version):
         with open(version_file_path, 'r') as file:
             content = file.read()
         
-        ### Parse version string into 4-component tuple
-        def version_to_tuple(version):
-            version = version.lstrip('v')
-            parts = version.split('.')
-            while len(parts) < 4:
-                parts.append('0')
-            return tuple(map(int, parts[:4]))
+        logger.info(f"Original file content: {content}")
         
-        version_tuple = version_to_tuple(new_version)
+        clean_version = new_version.lstrip('v')
         
-        ### Replace file and product versions (numeric tuples)
-        content = re.sub(
-            r'filevers=\([\d, ]+\)', 
-            f'filevers={version_tuple}', 
-            content
-        )
-        content = re.sub(
-            r'prodvers=\([\d, ]+\)', 
-            f'prodvers={version_tuple}', 
-            content
-        )
+        version_parts = clean_version.split('.')
+        while len(version_parts) < 4:
+            version_parts.append('0')
+            
+        version_tuple = tuple(map(int, version_parts[:4]))
         
-        ### Replace string versions
-        content = re.sub(
-            r'StringStruct\(\'FileVersion\', \'[\d.]+\'\)', 
-            f"StringStruct('FileVersion', '{new_version}')", 
-            content
-        )
-        content = re.sub(
-            r'StringStruct\(\'ProductVersion\', \'[\d.]+\'\)', 
-            f"StringStruct('ProductVersion', '{new_version}')", 
-            content
-        )
+        #### Replace file and product versions (numeric tuples)
+        lines = content.split('\n')
+        for i, line in enumerate(lines):
+            if 'filevers=' in line:
+                lines[i] = f'    filevers={version_tuple},'
+            elif 'prodvers=' in line:
+                lines[i] = f'    prodvers={version_tuple},'
+            elif "StringStruct('FileVersion'," in line:
+                lines[i] = f"        StringStruct('FileVersion', 'v{clean_version}'),"
+            elif "StringStruct('ProductVersion'," in line:
+                lines[i] = f"        StringStruct('ProductVersion', 'v{clean_version}')])"
+                
+        updated_content = '\n'.join(lines)
+        
         
         ### Write back to the file
         with open(version_file_path, 'w') as file:
-            file.write(content)
+            file.write(updated_content)
         
+        logger.info("Succesfully updated version info file")
         return True
     
     except Exception as e:

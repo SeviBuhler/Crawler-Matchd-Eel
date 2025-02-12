@@ -783,7 +783,7 @@ async function checkStartupStatus() {
 function updateStartupToggle(enabled) {
     const toggle = document.getElementById('startupToggle');
     if (toggle) {
-        toggle.checked = enabled === false;
+        toggle.checked = enabled === true;
     }
 }
 

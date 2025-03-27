@@ -2426,9 +2426,7 @@ class Crawler:
         except Exception as e:
             print(f"Error during crawl: {e}")
             return [], None
-                        
-               
-                        
+                             
     
     def __del__(self):
         """Destructor to safely close database connection"""
@@ -2441,6 +2439,6 @@ class Crawler:
 if __name__ == "__main__":
     ### Testing the crawler
     crawler = Crawler()
-    keywords = ['praktikum', 'werkstudent', 'praktika', 'junior']
-    url = 'https://www.aproda.ch/ueber-uns/karriere/offene-stellen'
+    keywords = ['praktikum', 'werkstudent', 'praktika', 'manager']
+    url = 'https://www.zootsolutions.eu/de/career/'
     crawler.crawl(url, keywords)

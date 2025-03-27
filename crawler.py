@@ -151,6 +151,9 @@ class Crawler:
                 elif 'aproda.ch' in current_url:
                     print(f"Aproda: {'aproda.ch' in current_url}")
                     page_content, next_url = self.crawl_aproda(current_url, keywords)
+                elif 'zootsolutions' in current_url:
+                    print(f"Zoot Solutions: {'zootsolutions' in current_url}")
+                    page_content, next_url = self.crawl_zoot(current_url, keywords)
                 else:
                     print(f"Unknown URL: {current_url}")
                     return
@@ -2423,6 +2426,66 @@ class Crawler:
             print(f"Found {len(content)} jobs")
             return content, next_page
 
+        except Exception as e:
+            print(f"Error during crawl: {e}")
+            return [], None
+    
+    
+    
+    def crawl_zoot(self, url, keywords):
+        """Function to Craw Zoot Solutions"""
+        print(f"Crawling Zoot Solutions URL: {url}")
+        
+        try:
+            ### Set up headers to mimic a browser
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5,de;q=0.4',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1',
+                'Sec-Fetch-Dest': 'document',
+                'Sec-Fetch-Mode': 'navigate',
+                'Sec-Fetch-Site': 'none',
+                'Sec-Fetch-User': '?1',
+            }
+            
+            
+            response = requests.get(url, headers=headers, timeout=10)
+            response.raise_for_status()
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            job_rows = soup.find_all('div', class_='story--zoot-item')
+            print(f"Found {len(job_rows)} job listings")
+            
+            content = []
+            for job in job_rows:
+                try:
+                    title = job.find('h5', class_='title--h5-zoot').text.strip()
+                    location = job.find('span', class_='story-location').text.strip()
+                    link = url
+                    company = 'Zoot Solutions'
+                    
+                    ### Check if any keyword is in the title, location is in Ostschweiz and is an IT job
+                    if any(keyword.lower() in title.lower() for keyword in keywords) and self.is_location_in_ostschweiz(location) and self.is_it_job(title):
+                        content.append({
+                            'title': title,
+                            'link': link,
+                            'location': location,
+                            'company': company
+                        })
+                        print(f"Found matching job: {title}")
+                    else:
+                        print(f"Skipping non-matching job: {title}")
+                except Exception as e:
+                    print(f"Error during extraction: {e}")
+                    continue
+            
+            next_page = None
+            print(f"Found {len(content)} jobs")
+            return content, next_page
+            
         except Exception as e:
             print(f"Error during crawl: {e}")
             return [], None

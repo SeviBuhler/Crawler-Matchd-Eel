@@ -160,6 +160,12 @@ class Crawler:
                 elif 'optisizer.ch' in current_url:
                     print(f"Optisizer: {'optisizer.ch' in current_url}")
                     page_content, next_url = self.crawl_optisizer(current_url, keywords)
+                elif 'ari-ag.ch' in current_url:
+                    print(f"ARI AG: {'ari-ag.ch' in current_url}")
+                    page_content, next_url = self.crawl_ari(current_url, keywords)
+                elif 'nextlevelconsulting.com' in current_url:
+                    print(f"Next Level Consulting: {'nextlevelconsulting.com' in current_url}")
+                    page_content, next_url = self.crawl_nextlevelconsulting(current_url, keywords)
                 else:
                     print(f"Unknown URL: {current_url}")
                     return
@@ -2622,6 +2628,143 @@ class Crawler:
             print(f"Error during crawl: {e}")
             return [], None
             
+    
+    
+    def crawl_ari(self, url, keywords):
+        """Function to crawl ARI AG"""
+        print(f"Crawling ARI AG URL: {url}")
+        
+        try:
+            ### Set up headers to mimic a browser
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5,de;q=0.4',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1',
+                'Sec-Fetch-Dest': 'document',
+                'Sec-Fetch-Mode': 'navigate',
+                'Sec-Fetch-Site': 'none',
+                'Sec-Fetch-User': '?1',
+            }
+            
+            session = requests.Session()
+            response = session.get(url, headers=headers, timeout=30)
+            response.raise_for_status()
+            
+            time.sleep(5)
+            
+            soup = BeautifulSoup(response.content, 'html.parser')
+            #print(soup.prettify())
+            
+            page_title = soup.find('title')
+            print(f"Page title: {page_title.text if page_title else 'No title'}")
+            
+            job_rows = soup.find_all('div', class_='w-vwrapper usg_vwrapper_1 align_none valign_middle')
+            print(f"Found {len(job_rows)} job listings")
+            
+            content = []
+            for job in job_rows:
+                try:
+                    title_element = job.find('h2', class_='w-post-elm post_title usg_post_title_1 entry-title color_link_inherit')
+                    title = title_element.find('a').text.strip()
+                    link = title_element.find('a')['href']
+                    location = 'Herisau'
+                    company = 'ARI AG'
+                    
+                    ### Check if any keyword is in the title and if it's an IT job
+                    if any(keyword.lower() in title.lower() for keyword in keywords) and self.is_it_job(title):
+                        content.append({
+                            'title': title,
+                            'link': link,
+                            'location': location,
+                            'company': company
+                        })
+                        print(f"Found matching job: {title}")
+                    else:
+                        print(f"Skipping non-matching job: {title}")
+                except Exception as e:
+                    print(f"Error during extraction: {e}")
+                    continue
+            next_page = None
+            print(f"Found {len(content)} jobs")
+            return content, next_page
+        
+        except Exception as e:
+            print(f"Error during crawl: {e}")
+            return [], None
+        
+        
+        
+        
+    def crawl_nextlevelconsulting(self, url, keywords):
+        """Function to crawl Nextlevel Consulting"""
+        print(f"Crawling Nextlevel Consulting URL: {url}")
+        
+        try:
+            ### crate a session to keep cookies
+            session = requests.Session()
+            
+            ### set up headers to mimic a browser
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5,de;q=0.4',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1',
+                'Sec-Fetch-Dest': 'document',
+                'Sec-Fetch-Mode': 'navigate',
+                'Sec-Fetch-Site': 'none',
+                'Sec-Fetch-User': '?1',
+            }
+            
+            response = session.get(url, headers=headers, timeout=20)
+            response.raise_for_status()
+            time.sleep(5)
+            
+            soup = BeautifulSoup(response.content, 'html.parser')
+            #print(soup.prettify())
+            job_section = soup.find('div', class_='content-wrapper default-gap default-gap--small')
+            print(f"Job section: {job_section}")
+            if job_section and isinstance(job_section, Tag):
+                print("looking for job_rows in job_section")
+                job_rows = job_section.find_all('a', class_='teaser-item color-white-bg teaser-item--border teaser-item--border__effect')
+            else:
+                print("Job section is not valid or not found.")
+                job_rows = []
+            print(f"Found {len(job_rows)} job listings")
+            
+            content = []
+            for job in job_rows:
+                try:
+                    title = job.find('div', class_='teaser-item__title h3').text.strip()
+                    link = job['href']
+                    location = job.find('div', class_='teaser-item__tags').text.strip()
+                    company = 'Nextlevel Consulting'
+                    
+                    ### Check if any keyword is in the title, location is in Ostschweiz and is an IT job
+                    if any(keyword.lower() in title.lower() for keyword in keywords) and self.is_location_in_ostschweiz(location) and self.is_it_job(title):
+                        content.append({
+                            'title': title,
+                            'link': link,
+                            'location': location,
+                            'company': company
+                        })
+                        print(f"Found matching job: {title}")
+                    else:
+                        print(f"Skipping non-matching job: {title}")
+                except Exception as e:
+                    print(f"Error during extraction: {e}")
+                    continue
+            next_page = None
+            print(f"Found {len(content)} jobs")
+            return content, next_page
+        
+        except Exception as e:
+            print(f"Error during crawl: {e}")
+            return [], None
             
                                         
     
@@ -2636,6 +2779,6 @@ class Crawler:
 if __name__ == "__main__":
     ### Testing the crawler
     crawler = Crawler()
-    keywords = ['praktikum', 'werkstudent', 'praktika', 'cloud']
-    url = 'https://www.optisizer.ch/jobs'
+    keywords = ['praktikum', 'werkstudent', 'praktika', 'engineer']
+    url = 'https://www.nextlevelconsulting.com/karriere/#jobs'
     crawler.crawl(url, keywords)

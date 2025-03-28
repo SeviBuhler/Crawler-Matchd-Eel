@@ -157,6 +157,9 @@ class Crawler:
                 elif 'stackworks.ch' in current_url:
                     print(f"Stackworks: {'stackworks.ch' in current_url}")
                     page_content, next_url = self.crawl_stackworks(current_url, keywords)
+                elif 'optisizer.ch' in current_url:
+                    print(f"Optisizer: {'optisizer.ch' in current_url}")
+                    page_content, next_url = self.crawl_optisizer(current_url, keywords)
                 else:
                     print(f"Unknown URL: {current_url}")
                     return
@@ -2549,7 +2552,78 @@ class Crawler:
             print(f"Error during crawl: {e}")
             return [], None
             
-                             
+    
+    
+    def crawl_optisizer(self, url, keywords):
+        """Function to crawl Optisizer"""
+        print(f"Crawling Optisizer URL: {url}")
+        
+        try:
+            ### Set up headers to mimic a browser
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5,de;q=0.4',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1',
+                'Sec-Fetch-Dest': 'document',
+                'Sec-Fetch-Mode': 'navigate',
+                'Sec-Fetch-Site': 'none',
+                'Sec-Fetch-User': '?1',
+            }
+            
+            response = requests.get(url, headers=headers, timeout=10)
+            response.raise_for_status()
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            job_rows = soup.find_all('div', class_='body')
+            print(f"Found {len(job_rows)} job listings")
+            print(job_rows)
+            
+            content = []
+            for job in job_rows:
+                try: 
+                    title_element = job.find('p', class_='loud')
+                    if title_element:
+                        if title_element.find('br'):
+                            title_parts = title_element.get_text(separator='<br>').split('<br>')
+                            title = title_parts[0].strip()
+                        else:
+                            print(f"Found no <br> tag. Extract whole text")
+                            title = title_element.text.strip()
+                            
+                    else:
+                        print("No title element found")
+
+                    link = 'https://www.optisizer.ch' + job.find('a', class_='load')['href']
+                    location = 'St. Gallen'
+                    company = 'Optisizer'
+                    
+                    ### Check if any keyword is in the title, location is in Ostschweiz and is an IT job
+                    if any(keyword.lower() in title.lower() for keyword in keywords) and self.is_location_in_ostschweiz(location) and self.is_it_job(title):
+                        content.append({
+                            'title': title,
+                            'link': link,
+                            'location': location,
+                            'company': company
+                        })
+                        print(f"Found matching job: {title}")
+                    else:
+                        print(f"Skipping non-matching job: {title}")
+                except Exception as e:
+                    print(f"Error during extraction: {e}")
+                    continue
+            next_page = None
+            print(f"Found {len(content)} jobs")
+            return content, next_page
+        
+        except Exception as e:
+            print(f"Error during crawl: {e}")
+            return [], None
+            
+            
+                                        
     
     def __del__(self):
         """Destructor to safely close database connection"""
@@ -2563,5 +2637,5 @@ if __name__ == "__main__":
     ### Testing the crawler
     crawler = Crawler()
     keywords = ['praktikum', 'werkstudent', 'praktika', 'cloud']
-    url = 'https://www.stackworks.ch/karriere#jobs'
+    url = 'https://www.optisizer.ch/jobs'
     crawler.crawl(url, keywords)

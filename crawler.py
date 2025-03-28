@@ -178,6 +178,9 @@ class Crawler:
                 elif 'advision.swiss' in current_url:
                     print(f"Advision: {'advision.swiss' in current_url}")
                     page_content, next_url = self.crawl_advision(current_url, keywords)
+                elif 'xerxes' in current_url:
+                    print(f"Xerxes: {'xerxes' in current_url}")
+                    page_content, next_url = self.crawl_xerxes(current_url, keywords)
                 else:
                     print(f"Unknown URL: {current_url}")
                     return
@@ -3048,6 +3051,72 @@ class Crawler:
             
                   
     
+    def crawl_xerxes(self, url, kexwords):
+        """Function to crawl Xerxes"""
+        print(f"Crawling Xerxes URL: {url}")
+        
+        try:
+            ### set up header to mimic a browser
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5,de;q=0.4',
+                'Accept-Encoding': 'identity',
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1',
+                'Sec-Fetch-Dest': 'document',
+                'Sec-Fetch-Mode': 'navigate',
+                'Sec-Fetch-Site': 'none',
+                'Sec-Fetch-User': '?1',
+            }
+            response = requests.get(url, headers=headers, timeout=10)
+            response.raise_for_status()
+            response.encoding = 'utf-8'
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            job_section = soup.find('div', id='c481')
+            print(f"Job section: {job_section}")
+            job_rows = []
+            if job_section and isinstance(job_section, Tag):
+                print(f"Job section is valid. Looking for job rows.")
+                job_rows = job_section.find_all('a')
+            else:
+                print("Job section is not valid or not found.")
+            
+            print(f"Found {len(job_rows)} job listings")
+            
+            content = []
+            for job in job_rows:
+                try:
+                    title = job.find('span').text.strip()
+                    link = 'https://www.xerxes.ch' + job['href']
+                    company = 'Xerxes'
+                    location = 'Appenzell'
+                    
+                    ### Check if any keyword is in the title and if it's an IT job
+                    if any(keyword.lower() in title.lower() for keyword in keywords) and self.is_it_job(title):
+                        content.append({
+                            'title': title,
+                            'link': link,
+                            'location': location,
+                            'company': company
+                        })
+                        print(f"Found matching job: {title}")
+                    else:
+                        print(f"Skipping non-matching job: {title}")
+                except Exception as e:
+                    print(f"Error during extraction: {e}")
+                    continue
+            next_page = None
+            print(f"Found {len(content)} jobs")
+            return content, next_page
+        
+        except Exception as e:
+            print(f"Error during crawl: {e}")
+            return [], None
+            
+    
+    
     def __del__(self):
         """Destructor to safely close database connection"""
         try:
@@ -3060,5 +3129,5 @@ if __name__ == "__main__":
     ### Testing the crawler
     crawler = Crawler()
     keywords = ['praktikum', 'werkstudent', 'praktika', 'engineer']
-    url = 'https://advision.swiss/karriere/'
+    url = 'https://www.xerxes.ch/stellen'
     crawler.crawl(url, keywords)

@@ -166,6 +166,12 @@ class Crawler:
                 elif 'nextlevelconsulting.com' in current_url:
                     print(f"Next Level Consulting: {'nextlevelconsulting.com' in current_url}")
                     page_content, next_url = self.crawl_nextlevelconsulting(current_url, keywords)
+                elif 'edorex.ch' in current_url:
+                    print(f"Edorex: {'edorex.ch' in current_url}")
+                    page_content, next_url = self.crawl_edorex(current_url, keywords)
+                elif 'diselva.com' in current_url:
+                    print(f"Diselva: {'diselva.com' in current_url}")
+                    page_content, next_url = self.crawl_diselva(current_url, keywords)
                 else:
                     print(f"Unknown URL: {current_url}")
                     return
@@ -242,6 +248,9 @@ class Crawler:
             'systemadministrator',
             'digital',
             'consult',
+            'datenbank',
+            'frontend',
+            'backend',
         ]
         return any(keyword.lower() in title.lower() for keyword in it_keywords)
     
@@ -2765,7 +2774,143 @@ class Crawler:
         except Exception as e:
             print(f"Error during crawl: {e}")
             return [], None
+        
+        
+    
+    def crawl_edorex(self, url, keywords):
+        """Function to crawl Edorex"""
+        print(f"Crawling Edorex URL: {url}")
+        
+        try:
+            ### Set up headers to mimic a browser
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5,de;q=0.4',
+                'Accept-Encoding': 'identity',
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1',
+                'Sec-Fetch-Dest': 'document',
+                'Sec-Fetch-Mode': 'navigate',
+                'Sec-Fetch-Site': 'none',
+                'Sec-Fetch-User': '?1',
+            }
+            session = requests.Session()
+            response = session.get(url, headers=headers, timeout=15)
+            response.raise_for_status()
             
+            response.encoding = 'utf-8'
+            
+            soup = BeautifulSoup(response.content, 'html.parser')
+            #print(soup.prettify())
+            
+            job_rows = soup.find_all(lambda tag: tag.name == 'li' and 
+                                                tag.has_attr('class') and
+                                                'wp-block-post' in ' '.join(tag.get('class', [])) and
+                                                'shp_job_category-offene-stellen' in ' '.join(tag.get('class', [])))
+            print(f"Found {len(job_rows)} job listings")
+            
+            content = []
+            for job in job_rows:
+                try:
+                    title_element = job.find('h2', class_='wp-block-post-title has-medium-font-size')
+                    title = title_element.find('a').text.strip()
+                    link = title_element.find('a')['href']
+                    company = 'Edorex'
+                    location = 'St. Gallen / Ostermundingen'
+                    
+                    ### Check if any keyword is in the title, location is in Ostschweiz and is an IT job
+                    if any(keyword.lower() in title.lower() for keyword in keywords) and self.is_location_in_ostschweiz(location) and self.is_it_job(title):
+                        content.append({
+                            'title': title,
+                            'link': link,
+                            'location': location,
+                            'company': company
+                        })
+                        print(f"Found matching job: {title}")
+                    else:
+                        print(f"Skipping non-matching job: {title}")
+                except Exception as e:
+                    print(f"Error during extraction: {e}")
+                    continue
+            next_page = None
+            print(f"Found {len(content)} jobs")
+            return content, next_page
+        
+        except Exception as e:
+            print(f"Error during crawl: {e}")
+            return [], None
+            
+    
+    
+    def crawl_diselva(self, url, keywords):
+        """Function to crawl Diselva"""
+        print(f"Crawling Diselva URL: {url}")
+        
+        try:
+            ### Set up headers to mimic a browser
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5,de;q=0.4',
+                'Accept-Encoding': 'identity',
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1',
+                'Sec-Fetch-Dest': 'document',
+                'Sec-Fetch-Mode': 'navigate',
+                'Sec-Fetch-Site': 'none',
+                'Sec-Fetch-User': '?1',
+            }
+            
+            session = requests.Session()
+            response = session.get(url, headers=headers, timeout=30)
+            response.raise_for_status()
+            response.encoding = 'utf-8'
+            
+            soup = BeautifulSoup(response.content, 'html.parser')
+            #print(soup.prettify())
+            
+            job_section = soup.find('div', class_='row-fluid-wrapper row-depth-1 row-number-2 dnd-section')
+            print(f"Job section: {job_section}")
+            job_rows = []
+            if job_section and isinstance(job_section, Tag):
+                job_rows = job_section.find_all(lambda tag: tag.name == 'div' and
+                                              tag.has_attr('class') and
+                                                'column item' in ' '.join(tag.get('class', [])))
+            print(f"Found {len(job_rows)} job listings")
+            
+            
+            content = []
+            for job in job_rows[1:]:
+                try: 
+                    title = job.find('h3', class_='mt-4 title is-4 is-height-100px').text.strip()
+                    link = job.find('a', class_='has-text-dark')['href']
+                    company = 'Diselva'
+                    location = 'St. Gallen'
+                    
+                    ### Check if any keyword is in the title and is an IT job
+                    if any(keyword.lower() in title.lower() for keyword in keywords) and self.is_it_job(title):
+                        content.append({
+                            'title': title,
+                            'link': link,
+                            'location': location,
+                            'company': company
+                        })
+                        print(f"Found matching job: {title}")
+                    else:
+                        print(f"Skipping non-matching job: {title}")
+                except Exception as e:
+                    print(f"Error during extraction: {e}")
+                    continue
+            next_page = None
+            print(f"Found {len(content)} jobs")
+            return content, next_page
+        
+        except Exception as e:
+            print(f"Error during crawl: {e}")
+            return [], None
+            
+    
                                         
     
     def __del__(self):
@@ -2779,6 +2924,6 @@ class Crawler:
 if __name__ == "__main__":
     ### Testing the crawler
     crawler = Crawler()
-    keywords = ['praktikum', 'werkstudent', 'praktika', 'engineer']
-    url = 'https://www.nextlevelconsulting.com/karriere/#jobs'
+    keywords = ['praktikum', 'werkstudent', 'praktika', 'frontend']
+    url = 'https://www.diselva.com/de/jobs'
     crawler.crawl(url, keywords)

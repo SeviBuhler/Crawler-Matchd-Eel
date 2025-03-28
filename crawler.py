@@ -184,6 +184,15 @@ class Crawler:
                 elif 'webwirkung.ch' in current_url:
                     print(f"Webwirkung: {'webwirkung.ch' in current_url}")
                     page_content, next_url = self.crawl_webwirkung(current_url, keywords)
+                elif 'stgallennetgroup.ch' in current_url:
+                    print(f"St.Gallen Netgroup: {'stgallennetgroup.ch' in current_url}")
+                    page_content, next_url = self.crawl_stgallennetgroup(current_url, keywords)
+                elif 'robotron.ch' in current_url:
+                    print(f"Robotron: {'robotron.ch' in current_url}")
+                    page_content, next_url = self.crawl_robotron(current_url, keywords)
+                elif 'joshmartin.ch' in current_url:
+                    print(f"Josh Martin: {'joshmartin.ch' in current_url}")
+                    page_content, next_url = self.crawl_joshmartin(current_url, keywords)
                 else:
                     print(f"Unknown URL: {current_url}")
                     return
@@ -263,6 +272,8 @@ class Crawler:
             'datenbank',
             'frontend',
             'backend',
+            'fullstack',
+            'it'
         ]
         return any(keyword.lower() in title.lower() for keyword in it_keywords)
     
@@ -3185,6 +3196,214 @@ class Crawler:
             print(f"Error during crawl: {e}")
             return [], None
             
+    
+    
+    def crawl_stgallennetgroup(self, url, keywords):
+        """Function to crawl St. Gallen Netgroup"""
+        print(f"Crawling St. Gallen Netgroup URL: {url}")
+        
+        try:
+            ### Set up headers to mimic a browser
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5,de;q=0.4',
+                'Accept-Encoding': 'identity',
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1',
+                'Sec-Fetch-Dest': 'document',
+                'Sec-Fetch-Mode': 'navigate',
+                'Sec-Fetch-Site': 'none',
+                'Sec-Fetch-User': '?1',
+            }
+            response = requests.get(url, headers=headers, timeout=10)
+            response.raise_for_status()
+            response.encoding = 'utf-8'
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            job_section = soup.find('section', attrs={'data-id':'120b2d23'})
+            print(f"Job section: {job_section}")
+            job_rows = []
+            if job_section and isinstance(job_section, Tag):
+                print(f"Job section is valid. Looking for job rows.")
+                job_rows = job_section.find_all('a')
+            else:
+                print("Job section is not valid or not found.")
+                
+            print(f"Found {len(job_rows)} job listings")
+            
+            content = []
+            for job in job_rows:
+                try:
+                    title = job.text.strip()
+                    link = job['href']
+                    company = 'St. Gallen Netgroup'
+                    location = 'St. Gallen'
+                    
+                    ### Check if any keyword is in title and if it's an IT job
+                    if any(keyword.lower() in title.lower() for keyword in keywords) and self.is_it_job(title):
+                        content.append({
+                            'title': title,
+                            'link': link,
+                            'location': location,
+                            'company': company
+                        })
+                        print(f"Found matching job: {title}")
+                    else:
+                        print(f"Skipping non-matching job: {title}")
+                except Exception as e:
+                    print(f"Error during extraction: {e}")
+                    continue
+            next_page = None
+            print(f"Found {len(content)} jobs")
+            return content, next_page
+        
+        except Exception as e:
+            print(f"Error during crawl: {e}")
+            return [], None
+    
+    
+    
+    def crawl_robotron(self, url, keywords):
+        """Function to crawl Robotron"""
+        print(f"Crawling Robotron URL: {url}")
+        
+        try:
+            ### Set up headers to mimic a browser
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5,de;q=0.4',
+                'Accept-Encoding': 'identity',
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1',
+                'Sec-Fetch-Dest': 'document',
+                'Sec-Fetch-Mode': 'navigate',
+                'Sec-Fetch-Site': 'none',
+                'Sec-Fetch-User': '?1',
+            }
+            
+            response = requests.get(url, headers=headers, timeout=10)
+            response.raise_for_status()
+            response.encoding = 'utf-8'
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            job_section = soup.find('div', class_='contentcontainer-column')
+            print(f"Job section: {job_section}")
+            job_rows = []
+            if job_section and isinstance(job_section, Tag):
+                print(f"Job section is valid. Looking for job rows.")
+                job_rows = job_section.find_all('p')
+            else:
+                print("Job section is not valid or not found.")
+            
+            print(f"Found {len(job_rows)} job listings")
+            
+            content = []
+            for job in job_rows:
+                try:
+                    ### Create a copy of the job element
+                    import copy
+                    job_copy = copy.copy(job)
+                    
+                    ### Remove the anchor tag from the copy
+                    if job_copy.find('a'):
+                        job_copy.find('a').decompose()
+                    
+                    title = job_copy.text.strip()
+                    link = 'https://www.robotron.ch' + job.find('a')['href']
+                    company = 'Robotron'
+                    location = 'Wil'
+                    
+                    ### Check if any keyword is in the title and if it's an IT job
+                    if any(keyword.lower() in title.lower() for keyword in keywords) and self.is_it_job(title):
+                        content.append({
+                            'title': title,
+                            'link': link,
+                            'company': company,
+                            'location': location
+                        })
+                        print(f"Found matching job: {title}")
+                    else:
+                        print(f"Skipping non-matching job: {title}")
+                except Exception as e:
+                    print(f"Error during extraction: {e}")
+                    continue
+            next_page = None
+            print(f"Found {len(content)} jobs")
+            return content, next_page
+
+        except Exception as e:
+            print(f"Error during crawl: {e}")
+            return [], None
+    
+    
+    
+    
+    def crawl_joshmartin(self, url, keywords):
+        """Function to crawl JoshMartin"""
+        print(f"Crawling JoshMartin URL: {url}")
+        
+        try:
+            ### set up headers to mimic a browser
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5,de;q=0.4',
+                'Accept-Encoding': 'identity',
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1',
+                'Sec-Fetch-Dest': 'document',
+                'Sec-Fetch-Mode': 'navigate',
+                'Sec-Fetch-Site': 'none',
+                'Sec-Fetch-User': '?1',
+            }
+            session = requests.Session()
+            response = session.get(url, headers=headers, timeout=10)
+            response.raise_for_status()
+            response.encoding = 'utf-8'
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            job_section = soup.find('section', class_='block special-job-entries')
+            print(f"Job section: {job_section}")
+            job_rows = []
+            if job_section and isinstance(job_section, Tag):
+                print(f"Job section is valid. Looking for job rows")
+                job_rows = job_section.find_all('li')
+            else:
+                print("Job section is not valid or not found.")
+            print(f"Found {len(job_rows)} job listings")
+            
+            content = []
+            for job in job_rows:
+                try:
+                    title = job.find('h4').text.strip()
+                    link = job.find('a')['href']
+                    company = 'JoshMartin'
+                    location = 'St. Gallen'
+                    
+                    ### Check if any keyword is in the title and if it's an IT job
+                    if any(keyword.lower() in title.lower() for keyword in keywords) and self.is_it_job(title):
+                        content.append({
+                            'title': title,
+                            'link': link,
+                            'company': company,
+                            'location': location
+                        })
+                        print(f"Found matching job: {title}")
+                    else:
+                        print(f"Skipping non-matching job: {title}")
+                except Exception as e:
+                    print(f"Error during extraction: {e}")
+                    continue
+            next_page = None
+            print(f"Found {len(content)} jobs")
+            return content, next_page
+        
+        except Exception as e:
+            print(f"Error during crawl: {e}")
+            return [], None
+            
             
     
     def __del__(self):
@@ -3198,6 +3417,6 @@ class Crawler:
 if __name__ == "__main__":
     ### Testing the crawler
     crawler = Crawler()
-    keywords = ['praktikum', 'werkstudent', 'praktika', 'engineer']
-    url = 'https://webwirkung.ch/karriere/'
+    keywords = ['praktikum', 'werkstudent', 'praktika', 'fullstack']
+    url = 'https://joshmartin.ch/stellen/'
     crawler.crawl(url, keywords)

@@ -37,8 +37,8 @@ def ensure_env_file():
                 f.write("# SMTP configuration for JobCrawler\n")
                 f.write("SMTP_SERVER=smtp.gmail.com\n")
                 f.write("SMTP_PORT=587\n")
-                f.write("SMTP_USERNAME=sevibuhler@gmail.com\n")
-                f.write("SMTP_PASSWORD=dwdy cwss xjrx vezu\n")
+                f.write("SMTP_USERNAME=crawlermatchd@gmail.com\n")
+                f.write("SMTP_PASSWORD=hjih axue rqom oipv\n")
             
             logging.info(f"Created template .env file at {env_path}")
         else:

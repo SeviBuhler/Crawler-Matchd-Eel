@@ -234,6 +234,20 @@ select {
     font-weight: 500;
 }
 
+.time-input {
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    width: 100px;
+}
+
+.settings-section h4 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #333;
+    font-size: 16px;
+}
+
 /* Toggle switch styles */
 .toggle-switch {
     position: relative;
@@ -287,3 +301,4 @@ select {
     border-radius: 4px;
     background: #fafafa;
 }
+

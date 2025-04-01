@@ -109,6 +109,21 @@ class Database:
         )
         ''')
         
+        ### Create settings table
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS settings (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL UNIQUE,
+            value TEXT
+        )
+        ''')
+        
+        ### Insert Standard email time if not exists
+        cursor.execute('''
+        INSERT OR IGNORE INTO settings (name, value)
+        VALUES ('email_time', '15:30')            
+        ''')
+        
     
     def populate_localities(self, cursor):
         """Populate the localities initial with data"""
@@ -283,6 +298,99 @@ class Database:
             return {"status": "error", "message": str(e)}
         finally:
             conn.close()
+            
+    
+    def get_email_settings(self):
+        """Function to get the Email settings from the database"""
+        try:
+            conn = sqlite3.connect(self.db_file)
+            cursor = conn.cursor()
+            
+            ### check if the table settings exists
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='settings'")
+            table_exists = cursor.fetchone()
+            
+            if not table_exists:
+                ### Create the settings table if it doesn't exist
+                cursor.execute("""
+                CREATE TABLE settings (
+                    id INTEGER PRIMARY KEY,
+                    name TEXT NOT NULL UNIQUE,
+                    value TEXT
+                )               
+                """)
+                conn.commit()
+            
+            ### Get email-time from settings    
+            cursor.execute("SELECT value FROM settings WHERE name='email_time'")
+            result = cursor.fetchone()
+            
+            ### Standard time if not set
+            email_time = "15:30" if result is None else result[0]
+            
+            return {
+                "status": "success",
+                "email_time": email_time,
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting email settings: {e}")
+            return {
+                "status": "error",
+                "message": str(e)
+            }
+        
+        finally:
+            conn.close()
+            
+        
+    def update_email_settings(self, email_time):
+        """Function to update the Email settings in the database"""
+        try:
+            conn = sqlite3.connect(self.db_file)
+            cursor = conn.cursor()
+            
+            ### check if the table settings exists
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='settings'")
+            table_exists = cursor.fetchone()
+            
+            if not table_exists:
+                ### Create the settings table if it doesn't exist
+                cursor.execute("""
+                CREATE TABLE settings (
+                    id INTEGER PRIMARY KEY,
+                    name TEXT NOT NULL UNIQUE,
+                    value TEXT
+                )               
+                """)
+            
+            ### Chekc, if email_time already exists
+            cursor.execute("SELECT id FROM settings WHERE name='email_time'")
+            existing = cursor.fetchone()
+            
+            if existing:
+                ### Update existing email_time
+                cursor.execute("UPDATE settings SET value=? WHERE name='email_time'", (email_time,))
+            else:
+                ### Insert new email_time
+                cursor.execute("INSERT INTO settings (name, value) VALUES ('email_time', ?)", (email_time,))
+            
+            conn.commit()
+            
+            return {
+                "status": "success",
+                "message": "Email settings updated successfully"
+            }
+            
+        except Exception as e:
+            logger.error(f"Error druing updating email settings: {e}")
+            return {
+                "status": "error",
+                "message": str(e)
+            }
+        finally:
+            conn.close()
+    
     
     
     def close(self):

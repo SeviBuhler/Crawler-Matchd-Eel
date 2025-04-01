@@ -98,6 +98,53 @@ function switchTab(tabId) {
     document.querySelector(`button[onclick="switchTab('${tabId}')"]`).classList.add("active");
 }
 
+function saveKeywordToHistory(keyword) {
+    // get the current history from local storage
+    let keywordHistory = JSON.parse(localStorage.getItem('keywordHistory')) || [];
+    // remove duplicates
+    keywordHistory = keywordHistory.filter(k => k !== keyword);
+    // add the new keyword to the beginning of the array
+    keywordHistory.unshift(keyword);
+    // Limit the history to the last 5 keywords
+    keywordHistory = keywordHistory.slice(0, 10);
+    // save the updated history to local storage
+    localStorage.setItem('keywordHistory', JSON.stringify(keywordHistory));
+}
+
+function setupKeywordAutocomplete() {
+    // get the keyword history
+    const keywordHistory = JSON.parse(localStorage.getItem('keywordHistory')) || [];
+
+    // create or uodate the autocomplete list
+    let datalist = document.getElementById('keyword-suggestions');
+    if (!datalist) {
+        datalist = document.createElement('datalist');
+        datalist.id = 'keyword-suggestions';
+        document.body.appendChild(datalist);
+    } else {
+        datalist.innerHTML = '';
+    }
+
+    // add options to the datalist
+    keywordHistory.forEach(keyword => {
+        const option = document.createElement('option');
+        option.value = keyword;
+        datalist.appendChild(option);
+    });
+
+    // connect the datalist to the input field
+    const keywordInput = [
+        document.getElementById('new-keyword'),
+        document.getElementById('popup-new-keyword')
+    ];
+
+    keywordInput.forEach(input => {
+        if (input) {
+            input.setAttribute('list', 'keyword-suggestions');
+        }
+    })
+}
+
 // Keyword handling
 function addKeywordOnEnter(event) {
     if (event.key === "Enter") {
@@ -110,6 +157,7 @@ function addKeywordOnEnter(event) {
             newKeyword.innerHTML = `${keyword} <span class="remove" onclick="this.parentElement.remove()">×</span>`;
             keywordsDiv.insertBefore(newKeyword, input.parentElement);
             input.value = "";
+            saveKeywordToHistory(keyword); // Save the keyword to history
         }
     }
 }
@@ -124,6 +172,7 @@ function addKeyword() {
         newKeyword.innerHTML = `${keyword} <span class="remove" onclick="this.parentElement.remove()">×</span>`;
         keywordsDiv.appendChild(newKeyword);
         keywordInput.value = '';
+        saveKeywordToHistory(keyword); // Save the keyword to history
     }
 }
 
@@ -506,6 +555,15 @@ function formatSchedule(time, days) {
 
 async function manageEmails(){
     try {
+        // If the settings modal is open, close it
+        const settingsModal = document.querySelector('.settings-modal');
+        if (settingsModal && settingsModal.parentElement) {
+            const emailTimeInput = document.getElementById('emailTimeInput');
+            if (emailTimeInput && emailTimeInput.value) {
+                await saveEmailTime(emailTimeInput.value);
+            }
+            settingsModal.parentElement.remove();
+        }
 
         const emails = await eel.get_emails()();
 
@@ -532,7 +590,7 @@ async function manageEmails(){
         popup.innerHTML = `
             <h3>Email-Benachrichtigung verwalten</h3>
             <div class="form-group">
-                <label for="email">Neue Email hinzufügen:</label>
+                <label for="email">Neuer E-Mail Empfänger hinzufügen:</label>
                 <div style="display: flex; gap: 10px;">
                     <input type="email" id="new-email" placeholder="email@example.com">
                     <button id="add-email-button">Hinzufügen</button>
@@ -729,23 +787,129 @@ function showSettings() {
                     </div>
                 </div>
             </div>
+
+            <div class="settings-section">
+                <h4>Email-Benachrichtigungen</h4>
+                <div class="setting-item">
+                    <label class="setting-label">Tägliche E-Mail senden um:</label>
+                    <input type="time" id="emailTimeInput" class="time-input">
+                </div>
+                <div class="settings-item">
+                    <button id="manageEmailsButton" onclick="manageEmails()" style="width: 100%;">
+                        E-Mail-Empfänger verwalten
+                    </button>
+                </div>
+            </div>
+
             <div style="text-align: right; margin-top: 15px;">
-                <button onclick="this.closest('.settings-modal').parentElement.remove()" style="background: #6c757d;">Schließen</button>
+                <button id='settingsCloseButton' style="background: #6c757d;">Schließen</button>
             </div>
         </div>
     `;
     
     document.body.appendChild(settingsModal);
     checkStartupStatus(); // Check the current status when showing the modal
+    loadEmailSettings(); // Load the current email settings
     
-    // Close modal when clicking outside
+    // Add keypress eventlistener for the time input
+    setTimeout(() => {
+        const emailTimeInput = document.getElementById('emailTimeInput');
+        if (emailTimeInput) {
+            emailTimeInput.addEventListener('keypress', function(event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    saveEmailTime(emailTimeInput.value);
+                }
+            });
+        }
+    }, 100);
+
+    // Close-button functionality
+    document.getElementById('settingsCloseButton').addEventListener('click', function() {
+            const emailTimeInput = document.getElementById('emailTimeInput');
+            if (emailTimeInput && emailTimeInput.value) {
+                saveEmailTime(emailTimeInput.value);
+            }
+            settingsModal.remove();
+    });
+
+    // Clsoe modal when clicking outside
     settingsModal.addEventListener('click', (event) => {
         if (event.target === settingsModal) {
+            const emailTimeInput = document.getElementById('emailTimeInput');
+            if (emailTimeInput && emailTimeInput.value) {
+                saveEmailTime(emailTimeInput.value);
+            }
             settingsModal.remove();
         }
     });
 }
 
+
+
+async function saveEmailTime(emailTime) {
+    if (!emailTime) return;
+
+    // Save actual value for comparison
+    if (!window.previousEmailTime){
+        window.previousEmailTime = emailTime;
+        return;
+    }
+
+    // Update only if the value has changed
+    if (emailTime !== window.previousEmailTime) {
+        try {
+            const result = await eel.update_email_settings(emailTime)();
+            if (result.status === 'success') {
+                window.previousEmailTime = emailTime; // Update the previous value
+                showAlert('Die E-Mail-Zeit wurde erfolgreich auf ' + emailTime + ' Uhr aktualisiert.')
+            } else {
+                showAlert("Fehler beim Aktualisieren der E-Mail-Zeit: " + result.message);
+            }
+        } catch (error) {
+            console.error('Error updating email time:', error);
+            showAlert('Fehler beim Aktualisieren der E-Mail-Zeit: ' + error);
+        }
+    }
+}
+
+
+
+async function loadEmailSettings() {
+    try {
+        const settings = await eel.get_email_settings()();
+        if (settings.status === 'success') {
+            const emailTimeInput = document.getElementById('emailTimeInput');
+            if (emailTimeInput) {
+                emailTimeInput.value = settings.email_time;
+                window.previousEmailTime = settings.email_time;
+            }
+        }
+    } catch (error) {
+        console.error('Error loading email settings:', error);
+    }
+}
+
+
+async function updateEmailTime() {
+    const emailTimeInput = document.getElementById('emailTimeInput');
+    if (!emailTimeInput) return;
+
+    const emailTime = emailTimeInput.value;
+    if (!emailTime) return;
+
+    try {
+        const result = await eel.update_email_settings(emailTime)();
+        if (result.status === 'success') {
+            showAlert('Die E-Mail-Zeit wurde erfolgreich aktualisiert.');
+        } else {
+            showAlert("Fehler beim Aktualisieren der E-Mail-Zeit: " + result.message);
+        }
+    } catch (error) {
+        console.error('Error updating email time:', error);
+        showAlert('Fehler beim Aktualisieren der E-Mail-Zeit: ' + error);
+    }
+}
 
 
 async function toggleStartup() {
@@ -790,6 +954,20 @@ function updateStartupToggle(enabled) {
 // Call this when the page loads
 document.addEventListener('DOMContentLoaded', () => {
     loadCrawls();
+    setupKeywordAutocomplete();
+
+    // Event listener for creating popup
+    const originalAddNewScheduledSite = addNewScheduledSite;
+    window.addNewScheduledSite = function() {
+        originalAddNewScheduledSite();
+        setTimeout(setupKeywordAutocomplete, 100); // Delay to ensure the popup is fully loaded
+    };
+
+    const originalEditCrawl = editCrawl;
+    window.editCrawl = function(crawlID) {
+        originalEditCrawl(crawlID);
+        setTimeout(setupKeywordAutocomplete, 100); // Delay to ensure the popup is fully loaded
+    }
 });
 
     

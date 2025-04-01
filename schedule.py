@@ -25,6 +25,9 @@ class CrawlerScheduler:
         self.timezone = timezone('Europe/Zurich')
         self.daily_crawls_complete = False
         self.active_crawls = set()
+        self.today_crawls_completed = set() ### Saves IDs of crawls completed today
+        self.email_job_id = 'daily_email_report'
+        
         
     
     def _get_connection(self):
@@ -43,6 +46,14 @@ class CrawlerScheduler:
     def start(self):
         """Start the scheduler and load all crawls from database"""
         try:
+            ### Checks the settins 
+            self.scheduler.add_job(
+                self.check_settings,
+                'interval',
+                minutes=1,
+                id='settings_checker'
+            )
+            
             ### Check crawls every minute for updates
             self.scheduler.add_job(
                 self.update_crawl_schedules,
@@ -51,13 +62,9 @@ class CrawlerScheduler:
                 id='crawl_schedule_updater'
             )
             
-            ### Add job for daily email report at 15:30
-            self.scheduler.add_job(
-                self.check_and_send_daily_report,
-                CronTrigger(hour=15, minute=30, timezone=self.timezone),
-                id='daily_email_report'
-            )
-            
+            ### Get the email time from database and plan the job
+            self.schedule_email_job()
+                        
             ### Load all crawls from database
             self.update_crawl_schedules()
             
@@ -69,14 +76,73 @@ class CrawlerScheduler:
             print(f'Error starting scheduler: {e}')
     
     
-    def check_and_send_daily_report(self):
-        """Check all crawls are complete and send daily report"""
-        if not self.active_crawls:
+    def schedule_email_job(self):
+        """Function to plan the daily email job based on database"""
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
+            ### check if settings table exists
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='settings'")
+            if not cursor.fetchone():
+                logger.error("Settings table does not exist")
+                email_time = '15:30'  ### Default time
+            else:
+                ### Get the email time from the settings table
+                cursor.execute("SELECT value FROM settings WHERE name='email_time'")
+                result = cursor.fetchone()
+                email_time = "15:30" if result is None else result[0]
+            
+            ### Parse the email time
+            hour, minute = map(int, email_time.split(':'))
+            
+            ### Remove existing email job if it exists
             try:
-                send_daily_email_report(self.db_path)
-                self.daily_crawls_complete = False ### Reset fot next day
-            except Exception as e:
-                logger.error(f'Error sending daily report: {e}')
+                self.scheduler.remove_job(self.email_job_id)
+            except:
+                pass
+            
+            ### Add the new email job
+            self.scheduler.add_job(
+                self.send_daily_report,
+                CronTrigger(hour=hour, minute=minute, timezone=self.timezone),
+                id=self.email_job_id
+            )
+            
+            reset_minute = (minute + 5) % 60
+            reset_hour = hour + ((minute +5) // 60)
+            
+            ### Reset completed crawls list at daily report time
+            self.scheduler.add_job(
+                self.reset_daily_tracking,
+                CronTrigger(hour=reset_hour, minute=reset_minute, timezone=self.timezone),
+                id='reset_daily_tracking'
+            )
+            
+            logger.info(f"Email job scheduled at {email_time} successfully")
+        except Exception as e:
+            logger.error(f"Error scheduling email job: {e}")
+        finally:
+            self._close_connection()
+
+    
+    
+    def reset_daily_tracking(self):
+        """Reset the tracking of completed crawls fot the new day"""
+        self.today_crawls_completed = set()
+        logger.info('Daily crawls tracking reset')
+        self.schedule_email_job()
+            
+    
+    
+    def send_daily_report(self):
+        """Send daily email report reardless of crawl status"""
+        try:
+            send_daily_email_report(self.db_path)
+            logger.info('Daily email report sent successfully')
+        except Exception as e:
+            logger.error(f'Error sending daily email report: {e}')
+    
     
     
     def stop(self):
@@ -88,6 +154,7 @@ class CrawlerScheduler:
         except Exception as e:
             logger.error(f'Error stopping scheduler: {e}')
             
+    
     
     def update_crawl_schedules(self):
         """Check database for crawls and update scheduler accordingly"""
@@ -106,7 +173,8 @@ class CrawlerScheduler:
             crawls = cursor.fetchall()
             
             ### Get currently scheduled job IDs
-            scheduled_jobs = {job.id for job in self.scheduler.get_jobs() if job.id != 'crawl_schedule_updater'}
+            system_jobs = {'crawl_schedule_updater', 'settings_checker', 'daily_email_report', 'reset_daily_tracking'}
+            scheduled_jobs = {job.id for job in self.scheduler.get_jobs() if job.id not in system_jobs and job.id.startswith('crawl_')}
             
             for crawl in crawls:
                 crawl_id, title, url, scheduleTime, scheduleDay, keywords = crawl
@@ -148,6 +216,41 @@ class CrawlerScheduler:
             
         except Exception as e:
             print(f'Error updating crawl schedules: {e}')
+        finally:
+            self._close_connection()
+    
+    
+    def check_settings(self):
+        """Checks the settings table for any changes"""
+        try:
+            ### Check the actual settings in the database
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
+            ### Check for existing settings table
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='settings'")
+            if not cursor.fetchone():
+                ### If settings dont exist, no changes are made
+                return 
+            
+            ### Get Actual email time 
+            cursor.execute("SELECT value FROM settings WHERE name='email_time'")
+            result = cursor.fetchone()
+            current_email_time = result[0] if result else "15:30"
+            
+            ### Save the previous email time and check if it changed
+            if not hasattr(self, 'previous_email_time'):
+                self.previous_email_time = current_email_time
+                return
+            
+            ### Only if the email time changed, reschedule the job
+            if current_email_time != self.previous_email_time:
+                logger.info(f"Email time changed from {self.previous_email_time} to {current_email_time}")
+                self.previous_email_time = current_email_time
+                self.schedule_email_job()
+            
+        except Exception as e:
+            logger.error(f"Error checking settings: {e}")
         finally:
             self._close_connection()
         
@@ -216,11 +319,50 @@ class CrawlerScheduler:
             logger.error(f'Error executing crawl {crawl_id}: {e}')
         
         finally:
+            self.today_crawls_completed.add(crawl_id)
             self.active_crawls.remove(crawl_id)
-            ### Check if this was the last  active crawl for the day
-            if not self.active_crawls:
-                self.check_and_send_daily_report()
             self._close_connection()
+                
+    
+    def update_email_time(self, new_time):
+        """Update the email time in the database for daily email report"""
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
+            ### Check for existing settings table
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='settings'")
+            if not cursor.fetchone():
+                logger.error("Settings table does not exist")
+                ### Create the settings table if it doesn't exist
+                cursor.execute('''
+                    CREATE TABLE settings (
+                        id INTEGER PRIMARY KEY,
+                        name TEXT NOT NULL UNIQUE  ,
+                        value TEXT
+                    )
+                ''')
+                
+            ### Update the email time
+            cursor.execute('''
+            INSERT OR REPLACE INTO settings (name, value)
+            VALUES ('email_time', ?)            
+            ''', (new_time,))
+            
+            conn.commit()
+            logger.info(f"Email time updated to {new_time}")
+            
+            ### Reschedule the email job
+            self.schedule_email_job()
+            
+            return True
+        except Exception as e:
+            logger.error(f"Error updating email time: {e}")
+            return False
+        finally:
+            self._close_connection()
+            
+    
                 
     def __del__(self):
         """Clean up resources when the schedluar is stopped"""

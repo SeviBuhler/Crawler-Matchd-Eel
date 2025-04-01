@@ -173,7 +173,36 @@ def delete_email(email_id):
     except Exception as e:
         logger.error(f"Error deleting email: {e}")
         return {"status": "error", "message": str(e)}
+
+
+@eel.expose
+def get_email_settings():
+    """Get email settings"""
+    try: 
+        settings = db.get_email_settings()
+        return settings
+    except Exception as e:
+        logger.error(f"Error getting email settings: {e}")
+        return {"status": "error", "message": str(e)}
+
+
+@eel.expose
+def update_email_settings(email_time):
+    """Update email settings"""
+    try:
+        ### Validate timezone
+        import re
+        if not re.match(r'^\d{2}:\d{2}$', email_time):
+            return {"status": "error", "message": "Invalid time format. Use HH:MM."}
+        
+        ### Update the settings in the database
+        result = db.update_email_settings(email_time)
+        return result
     
+    except Exception as e:
+        logger.error(f"Error updating email settings: {e}")
+        return {"status": "error", "message": str(e)}
+
 
 @eel.expose
 def toggle_startup():

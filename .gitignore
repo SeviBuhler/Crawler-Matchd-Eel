@@ -1,8 +1,7 @@
-# Build outputs
 /dist/
 /build/
 *.log
 __pycache__/
 CrawlerEnv313/
 crawls.db
-.env
+env_utils.py

@@ -27,6 +27,24 @@ class Crawler:
         self.visited_URLs = set()
         self.results = []
         self.ostschweiz_locations = self.get_ostschweiz_locations()
+        self.headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9,de;q=0.4',
+            'Accept-Encoding': 'identity',
+            'Connection': 'keep-alive',
+            'Cache-Control': 'max-age=0',
+            'Upgrade-Insecure-Requests': '1',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Sec-Fetch-User': '?1',
+        }
+        self.api_headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
         
     def _get_connection(self):
         """Get or create a thread-local database connection"""
@@ -103,7 +121,7 @@ class Crawler:
                 elif "inside-it.ch" in current_url:
                     print(f"inside-it.ch: {'inside-it' in current_url}")
                     page_content, next_url = self.crawl_inside_it(current_url, keywords)
-                elif "abacus" in current_url:
+                elif "jobportal.abaservices" in current_url:
                     print(f"Abacus.ch: {'abacus' in current_url}")
                     page_content, next_url = self.crawl_abacus(current_url, keywords)
                 elif "STSG" in current_url:
@@ -118,7 +136,7 @@ class Crawler:
                 elif 'buhlergroup' in current_url:
                     print(f"buhlergroup.com: {'buhlergroup' in current_url}")
                     page_content, next_url = self.crawl_buehler(current_url, keywords)
-                elif 'dualoo' in current_url:
+                elif 'jobs.dualoo.com/portal/lx0anfq4?lang=DE' in current_url:
                     print(f"egeli-informatik.ch: {'egeli' in current_url}")
                     page_content, next_url = self.crawl_egeli(current_url, keywords)
                 elif 'h-och.ch' in current_url:
@@ -133,7 +151,7 @@ class Crawler:
                 elif 'hexagon.com' in current_url:
                     print(f"hexagon.com: {'hexagon.com' in current_url}")
                     page_content, next_url = self.crawl_hexagon(current_url, keywords)
-                elif 'ohws.prospective.ch' in current_url:
+                elif 'ohws.prospective.ch/public/v1/medium/1950' in current_url:
                     print(f"API von Raiffeisen Schweiz: {'ohws.prospective.ch' in current_url}")
                     page_content, next_url = self.crawl_raiffeisen(current_url, keywords)
                 elif 'join.sfs.com' in current_url:
@@ -196,6 +214,48 @@ class Crawler:
                 elif 'www.farner.ch' in current_url:
                     print(f"Farner: {'www.farner.ch' in current_url}")
                     page_content, next_url = self.crawl_farner(current_url, keywords)
+                elif 'dynanet.ch' in current_url:
+                    print(f"Dynanet: {'dynanet.ch' in current_url}")
+                    page_content, next_url = self.crawl_dynanet(current_url, keywords)
+                elif 'dachcom.com' in current_url:
+                    print(f"Dachcom: {'dachcom.com' in current_url}")
+                    page_content, next_url = self.crawl_dachcom(current_url, keywords)
+                elif 'adesso.ch' in current_url:
+                    print(f"Adesso: {'adesso.ch' in current_url}")
+                    page_content, next_url = self.crawl_adesso(current_url, keywords)
+                elif 'unisg.ch' in current_url:
+                    print(f"Universität St. Gallen: {'unisg.ch' in current_url}")
+                    page_content, next_url = self.crawl_unisg(current_url, keywords)
+                elif 'svasg-jobs' in current_url:
+                    print(f"SVA St. Gallen: {'svasg-jobs' in current_url}")
+                    page_content, next_url = self.crawl_svasg(current_url, keywords)
+                elif 'sgkb.ch' in current_url:
+                    print(f"St. Galler KB: {'sgkb.ch' in current_url}")
+                    page_content, next_url = self.crawl_sgkb(current_url, keywords)
+                elif 'sak.ch' in current_url:
+                    print(f"SAK: {'sak.ch' in current_url}")
+                    page_content, next_url = self.crawl_sak(current_url, keywords)
+                elif '.ch/public/v1/careercenter/1005765' in current_url:
+                    print(f'Pychiatrie St.Gallen: {".ch/public/v1/careercenter/1005765" in current_url}')
+                    page_content, next_url = self.crawl_psg(current_url, keywords)
+                elif 'jobs.dualoo.com/portal/ppqp7jqv?lang=DE' in current_url:
+                    print(f'Permapack: {"jobs.dualoo.com/portal/ppqp7jqv?lang=DE" in current_url}')
+                    page_content, next_url = self.craw_permapack(current_url, keywords)
+                elif 'optimatik.ch' in current_url:
+                    print(f'Optimatik: {"optimatik.ch" in current_url}')
+                    page_content, next_url = self.crawl_optimatik(current_url, keywords)
+                elif 'oertli-jobs.com' in current_url:
+                    print(f"Oertli: {"oertli-jobs.com" in current_url}")
+                    page_content, next_url = self.crawl_oertli(current_url, keywords)
+                elif 'obt.ch/de/karriere' in current_url:
+                    print(f"OBT: {'.obt.ch/de/karriere' in current_url}")
+                    page_content, next_url = self.crawl_obt(current_url, keywords)
+                elif 'https://www.netsafe.ch/jobs' in current_url:
+                    print(f"Netsafe: {'https://www.netsafe.ch/jobs' in current_url}")
+                    page_content, next_url = self.crawl_netsafe(current_url, keywords)
+                elif 'www.neovac.ch/jobs' in current_url:
+                    print(f"Neovac: {'www.neovac.ch/jobs' in current_url}")
+                    page_content, next_url = self.crawl_neovac(current_url, keywords)
                 else:
                     print(f"Unknown URL: {current_url}")
                     return
@@ -270,6 +330,7 @@ class Crawler:
             'applikation',
             'ict',
             'systemadministrator',
+            'syste',
             'digital',
             'consult',
             'datenbank',
@@ -303,7 +364,7 @@ class Crawler:
         """Crawl function for Benedict"""
         print(f"Crawling Benedict URL: {url}")
         try:
-            response = requests.get(url)
+            response = requests.get(url, headers=self.headers, timeout=10)
             soup = BeautifulSoup(response.content, 'html.parser')
         
             ### Then find all H2 elements in the div
@@ -357,7 +418,7 @@ class Crawler:
         
         try:
             ### Crawl the URL
-            response = requests.get(url)
+            response = requests.get(url, headers=self.headers, timeout=10)
             soup = BeautifulSoup(response.content, 'html.parser')
             
             ### Extract parent element of listed jobs
@@ -409,7 +470,7 @@ class Crawler:
         """Crawl function for BZWU"""
         print(f"Crawling BZWU URL: {url}")
         try:
-            response = requests.get(url)
+            response = requests.get(url, headers=self.headers, timeout=10)
             soup = BeautifulSoup(response.content, 'html.parser')
 
             ### Extract parent element of listed jobs
@@ -464,7 +525,7 @@ class Crawler:
         """Crawl function for FFHS"""
         print(f"Crawling FFHS URL: {url}")
         try:
-            response = requests.get(url)
+            response = requests.get(url, headers=self.headers, timeout=10)
             soup = BeautifulSoup(response.content, 'html.parser')
 
             ### Extract parent element of listed jobs
@@ -517,7 +578,7 @@ class Crawler:
         """Crawl function for FHGR"""
         print(f"Crawling FHGR URL: {url}")
         try:
-            response = requests.get(url)
+            response = requests.get(url, headers=self.headers, timeout=10)
             soup = BeautifulSoup(response.content, 'html.parser')
             
             ### Extract parent element of listed jobs
@@ -570,7 +631,7 @@ class Crawler:
         """Crawl function for gbssg"""
         print(f"Crawling gbssg URL: {url}")
         try:
-            response = requests.get(url)
+            response = requests.get(url, headers=self.headers, timeout=10)
             
             ### Get the actual URL from the response
             actual_url = response.url
@@ -643,7 +704,7 @@ class Crawler:
         """Crawl function for ipso"""
         print(f"Crawling ipso URL: {url}")
         try:
-            response = requests.get(url)
+            response = requests.get(url, headers=self.headers, timeout=10)
             soup = BeautifulSoup(response.content, 'html.parser')
             
             job_rows = soup.find_all('a', class_='beg-job-block node')
@@ -685,7 +746,7 @@ class Crawler:
         """Crawl function for Pädagogische Hochschule St. Gallen"""
         print(f"Crawling PHSG URL: {url}")
         try:
-            response = requests.get(url)
+            response = requests.get(url, headers=self.headers, timeout=10)
             soup = BeautifulSoup(response.content, 'html.parser')
             #print(soup.prettify()[:500])
 
@@ -734,7 +795,7 @@ class Crawler:
         """Crawl function for jobs-ost.ch"""
         print(f"Crawling jobs-ost URL: {url}")
         try:
-            response = requests.get(url)
+            response = requests.get(url, headers=self.headers, timeout=10)
             soup = BeautifulSoup(response.content, 'html.parser')
 
             ### Extract parent element of listed jobs
@@ -781,7 +842,7 @@ class Crawler:
         """method to crawl swissengineering.ch"""
         print(f"Crawling swissengineering URL: {url}")
         try:
-            response = requests.get(url)
+            response = requests.get(url, headers=self.headers, timeout=10)
             data = response.json() ### get the whole json data
             job_rows = data.get('jobs', []) ### get the jobs array safely
             
@@ -825,26 +886,8 @@ class Crawler:
         """Crawl function for innovationspark-ost.ch"""
         print(f"Crawling innovationspark-ost URL: {url}")
         try:
-            ### Set up headers to mimic a browser
-            headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Connection': 'keep-alive',
-            'Cache-Control': 'max-age=0',
-            'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
-            'sec-ch-ua-mobile': '?0',
-            'sec-ch-ua-platform': '"Windows"',
-            'Sec-Fetch-Dest': 'document',
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'none',
-            'Sec-Fetch-User': '?1',
-            'Upgrade-Insecure-Requests': '1'
-            }
-            
             ### Make a request to the URL
-            response = requests.get(url, headers=headers)
+            response = requests.get(url, headers=self.headers, timeout=10)
             soup = BeautifulSoup(response.content, 'html.parser')
             #print("Initial response status:", response.status_code)
             #print("Response content previes:", response.text[:500])
@@ -898,27 +941,9 @@ class Crawler:
     def crawl_rheintal(self, url, keywords):
         """Crawl function for rheintal.com"""
         print(f"Crawling rheintal.com URL: {url}")
-        try:
-            ### Set up headers to mimic a browser
-            headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Connection': 'keep-alive',
-            'Cache-Control': 'max-age=0',
-            'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
-            'sec-ch-ua-mobile': '?0',
-            'sec-ch-ua-platform': '"Windows"',
-            'Sec-Fetch-Dest': 'document',
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'none',
-            'Sec-Fetch-User': '?1',
-            'Upgrade-Insecure-Requests': '1'
-            }
-            
+        try:            
             ### request to the URL
-            response = requests.get(url, headers=headers)
+            response = requests.get(url, headers=self.headers, timeout=10)
             soup = BeautifulSoup(response.content, 'html.parser')
             #print("Initial response status:", response.status_code)
             #print("Response content previes:", response.text[:500])
@@ -987,26 +1012,8 @@ class Crawler:
     def crawl_digitalliechtenstein(self, url, keywords):
         """Crawl function for digitalliechtenstein.ch"""
         print(f"Crawling digitalliechtenstein URL: {url}")
-        try:
-            ### Set up headers to mimic a browser
-            headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Connection': 'keep-alive',
-            'Cache-Control': 'max-age=0',
-            'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
-            'sec-ch-ua-mobile': '?0',
-            'sec-ch-ua-platform': '"Windows"',
-            'Sec-Fetch-Dest': 'document',
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'none',
-            'Sec-Fetch-User': '?1',
-            'Upgrade-Insecure-Requests': '1'
-            }
-            
-            response = requests.get(url, headers=headers)
+        try:            
+            response = requests.get(url, headers=self.headers, timeout=10)
             soup = BeautifulSoup(response.content, 'html.parser')
             
             job_rows = soup.find_all('li', class_='item')
@@ -1072,26 +1079,9 @@ class Crawler:
     def crawl_eastdigital(self, url, keywords):
         """Crawl function for eastdigital.ch"""
         print(f"Crawling eastdigital URL: {url}")
-        try:
-            ### Set up headers to mimic a browser
-            headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Connection': 'keep-alive',
-            'Cache-Control': 'max-age=0',
-            'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
-            'sec-ch-ua-mobile': '?0',
-            'sec-ch-ua-platform': '"Windows"',
-            'Sec-Fetch-Dest': 'document',
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'none',
-            'Sec-Fetch-User': '?1',
-            'Upgrade-Insecure-Requests': '1'
-            }
-            
-            response = requests.get(url, headers=headers)
+        
+        try:            
+            response = requests.get(url, headers=self.headers, timeout=10)
             soup = BeautifulSoup(response.content, 'html.parser')
             print("Initial response status:", response.status_code)
             print("Response content previes:", response.text[:500])
@@ -1172,27 +1162,9 @@ class Crawler:
             session.mount("https://", adapter)
             session.mount("http://", adapter)
             
-            ### Set up headers to mimic a browser
-            headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Connection': 'keep-alive',
-            'Cache-Control': 'max-age=0',
-            'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
-            'sec-ch-ua-mobile': '?0',
-            'sec-ch-ua-platform': '"Windows"',
-            'Sec-Fetch-Dest': 'document',
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'none',
-            'Sec-Fetch-User': '?1',
-            'Upgrade-Insecure-Requests': '1'
-            }
-            
             time.sleep(2)
            
-            response = session.get(url, headers=headers, timeout=10)
+            response = session.get(url, headers=self.headers, timeout=10)
             response.raise_for_status() ### Raise an exception for bad status codes
             
             response.encoding = 'utf-8' ### Force the encoding to utf-8
@@ -1272,14 +1244,8 @@ class Crawler:
         print(f"Crawling Abacus API URL: {url}")
 
         try:
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            }
-
             ### Make the API request
-            response = requests.get(url, headers=headers)
+            response = requests.get(url, headers=self.api_headers, timeout=10)
 
             ### Parse the response as a dictionary
             response_data = response.json()
@@ -1352,12 +1318,12 @@ class Crawler:
                     
                     
     def crawl_STSG (self, url, keywords):
-        """Crawl Function for Stadt St. Gallen"""
-        print(f'Crawling Stadt St. Gallen API URL: {url}')
+        """Crawl Function for Stadt St. Gallen or St.Galler Stadwerke"""
+        print(f'Crawling Stadt St. Gallen / St.Galler Stadtwerke API URL: {url}')
         
-        try:            
+        try:          
             ### Make the API request
-            response = requests.get(url)
+            response = requests.get(url, headers=self.api_headers, timeout=10)
             
             ### Parse the response using utf-8-sig encoding to handle BOM
             try:
@@ -1373,7 +1339,11 @@ class Crawler:
                 try:
                     ### extract job details
                     title = job.get('title', {}).get('value', 'No title')
-                    link = 'https://live.solique.ch/STSG/de/' + job.get('link', {})
+                    link_element = job.get('link', {})
+                    if '../' in link_element :
+                        link = 'https://live.solique.ch/STSG/de/' + link_element.replace('../', '')
+                    else:    
+                        link = 'https://live.solique.ch/STSG/de/' + job.get('link', {})
                     company = job.get('company', {}).get('value', 'No company')
                     location = 'St. Gallen'
                     
@@ -1432,23 +1402,11 @@ class Crawler:
             'second-level-support/',
             'system-administration/',
         ]
+        
         try:
-            # Enhanced headers to mimic a browser
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'Connection': 'keep-alive',
-                'Upgrade-Insecure-Requests': '1',
-                'Sec-Fetch-Dest': 'document',
-                'Sec-Fetch-Mode': 'navigate',
-                'Sec-Fetch-Site': 'none',
-                'Sec-Fetch-User': '?1',
-            }
             content = []
             for ending in url_endings:
-                response = requests.get(url + ending, headers=headers, timeout=10)
+                response = requests.get(url + ending, headers=self.headers, timeout=10)
                 
                 ### Check if the response is successful
                 response.raise_for_status()
@@ -1496,25 +1454,11 @@ class Crawler:
         print(f"Crawling Abraxas URL: {url}")
 
         try:
-            ### Set up headers to mimic a browser
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5,de;q=0.4',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'Connection': 'keep-alive',
-                'Upgrade-Insecure-Requests': '1',
-                'Sec-Fetch-Dest': 'document',
-                'Sec-Fetch-Mode': 'navigate',
-                'Sec-Fetch-Site': 'none',
-                'Sec-Fetch-User': '?1',
-            }
-
             # Create a session to manage cookies
             session = requests.Session()
 
             # First request to get the cookie consent page
-            response = session.get(url, headers=headers, timeout=10)
+            response = session.get(url, headers=self.headers, timeout=10)
             response.raise_for_status()
             print(f"Initial response status: {response.status_code}")
 
@@ -1539,7 +1483,7 @@ class Crawler:
                     session.cookies.set(name, value, domain='abraxas.ch')
 
                 # Make another request to get the actual page content
-                response = session.get(url, headers=headers, timeout=10)
+                response = session.get(url, headers=self.headers, timeout=10)
                 response.raise_for_status()
                 print(f"Post-consent response status: {response.status_code}")
                 soup = BeautifulSoup(response.content, 'html.parser')
@@ -1669,21 +1613,7 @@ class Crawler:
         print(f"Crawling Buehler URL: {url}")
         
         try:
-            ### Set up headers to mimic a browser
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5,de;q=0.4',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'Connection': 'keep-alive',
-                'Upgrade-Insecure-Requests': '1',
-                'Sec-Fetch-Dest': 'document',
-                'Sec-Fetch-Mode': 'navigate',
-                'Sec-Fetch-Site': 'none',
-                'Sec-Fetch-User': '?1',
-            }
-            
-            response = requests.get(url, headers=headers, timeout=10)
+            response = requests.get(url, headers=self.headers, timeout=10)
             response.raise_for_status()
             print(f"Initial response status: {response.status_code}")
             
@@ -1787,22 +1717,8 @@ class Crawler:
         """Fucntion to crawl Egeli Informatik"""
         print(f"Crawling Egleli Informatik URL: {url}")
         
-        try:
-            ### Set up headers to mimic a browser
-            headers = {
-               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5,de;q=0.4',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'Connection': 'keep-alive',
-                'Upgrade-Insecure-Requests': '1',
-                'Sec-Fetch-Dest': 'document',
-                'Sec-Fetch-Mode': 'navigate',
-                'Sec-Fetch-Site': 'none',
-                'Sec-Fetch-User': '?1', 
-            }
-            
-            response = requests.get(url, headers=headers, timeout=10)
+        try:            
+            response = requests.get(url, headers=self.headers, timeout=10)
             response.raise_for_status()
             soup = BeautifulSoup(response.content, 'html.parser')
             print(soup.prettify()[:500])
@@ -1858,23 +1774,8 @@ class Crawler:
         retry_count = 0
         backoff_time = 2
         
-        try:
-            ### Set up headers to mimic a browser
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5,de;q=0.4',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'Connection': 'keep-alive',
-                'Upgrade-Insecure-Requests': '1',
-                'Sec-Fetch-Dest': 'document',
-                'Sec-Fetch-Mode': 'navigate',
-                'Sec-Fetch-Site': 'none',
-                'Sec-Fetch-User': '?1',
-                'Cache-Control': 'no-cache',
-            }
-            
-            response = requests.get(url, headers=headers, timeout=10)
+        try:            
+            response = requests.get(url, headers=self.headers, timeout=10)
             response.raise_for_status()
             soup = BeautifulSoup(response.content, 'html.parser')
             print(soup.prettify()[:500])
@@ -1946,7 +1847,7 @@ class Crawler:
         print(f"Crawling InventX URL: {url}")
         
         try:
-            response = requests.get(url)
+            response = requests.get(url, headers=self.headers, timeout=10)
             response.raise_for_status()
             soup = BeautifulSoup(response.content, 'html.parser')
             print(soup.prettify()[:500])
@@ -1988,7 +1889,7 @@ class Crawler:
         print(f"Crawling KMS URL: {url}")
         
         try:
-            response = requests.get(url)
+            response = requests.get(url, headers=self.headers, timeout=10)
             response.raise_for_status()
             soup = BeautifulSoup(response.content, 'html.parser')
             print(soup.prettify()[:500])
@@ -2036,13 +1937,8 @@ class Crawler:
         print(f"Crawling Hexagon URL: {url}")
         
         try:
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            }
             ### API request
-            response = requests.get(url, headers=headers)
+            response = requests.get(url, headers=self.api_headers, timeout=10)
             response.raise_for_status()
             
             ### Parse the json response
@@ -2102,11 +1998,11 @@ class Crawler:
     
     def crawl_raiffeisen(self, url, keywords):
         """Function to Crawl Raiffeisen Schweiz"""
-        print(f"Crawling Raiffeisen Schweiz URL: {url}")
+        print(f"Crawling Raiffeisen Schweiz API: {url}")
         
         try:
             ### Request the API page
-            response = requests.get(url)
+            response = requests.get(url, self.api_headers, timeout=10)
             response.raise_for_status()
             
             ### Parse the json response
@@ -2155,22 +2051,8 @@ class Crawler:
         """Function to crawl SFS"""
         print(f"Crawling SFS URL: {url}")
         
-        try:
-            ### Setting up headers to mimic a browser
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5,de;q=0.4',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'Connection': 'keep-alive',
-                'Upgrade-Insecure-Requests': '1',
-                'Sec-Fetch-Dest': 'document',
-                'Sec-Fetch-Mode': 'navigate',
-                'Sec-Fetch-Site': 'none',
-                'Sec-Fetch-User': '?1',
-            }
-            
-            response = requests.get(url, headers=headers, timeout=10)
+        try:            
+            response = requests.get(url, headers=self.headers, timeout=10)
             response.raise_for_status()
             soup = BeautifulSoup(response.content, 'html.parser')
             
@@ -2220,21 +2102,7 @@ class Crawler:
         print(f"Crawling Umantis URL: {url}")
         
         try:
-            ### Set up headers to mimic a browser
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5,de;q=0.4',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'Connection': 'keep-alive',
-                'Upgrade-Insecure-Requests': '1',
-                'Sec-Fetch-Dest': 'document',
-                'Sec-Fetch-Mode': 'navigate',
-                'Sec-Fetch-Site': 'none',
-                'Sec-Fetch-User': '?1',
-            }
-            
-            response = requests.get(url, headers=headers, timeout=10)
+            response = requests.get(url, headers=self.headers, timeout=10)
             response.raise_for_status()
             soup = BeautifulSoup(response.content, 'html.parser')
             
@@ -2251,7 +2119,7 @@ class Crawler:
                     ### Extract location
                     if any(keyword.lower() and title.lower() for keyword in keywords) and self.is_it_job(title):
                         ### load the detailed job page to extract the location
-                        load_job = requests.get(link, headers=headers)
+                        load_job = requests.get(link, headers=self.headers)
                         load_job.raise_for_status()
                         job_soup = BeautifulSoup(load_job.content, 'html.parser')
                         
@@ -2298,21 +2166,7 @@ class Crawler:
         print(f"Crawling Acreo URL: {url}")
         
         try:
-            ### set up headers to mimic a browser
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5,de;q=0.4',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'Connection': 'keep-alive',
-                'Upgrade-Insecure-Requests': '1',
-                'Sec-Fetch-Dest': 'document',
-                'Sec-Fetch-Mode': 'navigate',
-                'Sec-Fetch-Site': 'none',
-                'Sec-Fetch-User': '?1',
-            }
-            
-            response = requests.get(url, headers=headers, timeout=10)
+            response = requests.get(url, headers=self.headers, timeout=10)
             response.raise_for_status()
             soup = BeautifulSoup(response.content, 'html.parser')
             
@@ -2361,21 +2215,7 @@ class Crawler:
         print(f"Crawling All Consulting URL: {url}")
         
         try: 
-            ### Set up headers to mimic a browser
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5,de;q=0.4',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'Connection': 'keep-alive',
-                'Upgrade-Insecure-Requests': '1',
-                'Sec-Fetch-Dest': 'document',
-                'Sec-Fetch-Mode': 'navigate',
-                'Sec-Fetch-Site': 'none',
-                'Sec-Fetch-User': '?1',
-            }
-            
-            response = requests.get(url, headers=headers, timeout=10)
+            response = requests.get(url, headers=self.headers, timeout=10)
             response.raise_for_status()
             soup = BeautifulSoup(response.content, 'html.parser')
             
@@ -2423,20 +2263,7 @@ class Crawler:
         print(f"Crawling Aproda URL: {url}")
         
         try:
-            ### Set up headers to mimic a browser
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5,de;q=0.4',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'Connection': 'keep-alive',
-                'Upgrade-Insecure-Requests': '1',
-                'Sec-Fetch-Dest': 'document',
-                'Sec-Fetch-Mode': 'navigate',
-                'Sec-Fetch-Site': 'none',
-                'Sec-Fetch-User': '?1',
-            }
-            response = requests.get(url, headers=headers, timeout=10)
+            response = requests.get(url, headers=self.headers, timeout=10)
             response.raise_for_status()
             soup = BeautifulSoup(response.content, 'html.parser')
             
@@ -2483,23 +2310,8 @@ class Crawler:
         """Function to Craw Zoot Solutions"""
         print(f"Crawling Zoot Solutions URL: {url}")
         
-        try:
-            ### Set up headers to mimic a browser
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5,de;q=0.4',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'Connection': 'keep-alive',
-                'Upgrade-Insecure-Requests': '1',
-                'Sec-Fetch-Dest': 'document',
-                'Sec-Fetch-Mode': 'navigate',
-                'Sec-Fetch-Site': 'none',
-                'Sec-Fetch-User': '?1',
-            }
-            
-            
-            response = requests.get(url, headers=headers, timeout=10)
+        try:            
+            response = requests.get(url, headers=self.headers, timeout=10)
             response.raise_for_status()
             soup = BeautifulSoup(response.content, 'html.parser')
             
@@ -2543,20 +2355,7 @@ class Crawler:
         print(f"Crawling Stackworks URL: {url}")
         
         try: 
-            ### Set up headers to mimic a browser
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5,de;q=0.4',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'Connection': 'keep-alive',
-                'Upgrade-Insecure-Requests': '1',
-                'Sec-Fetch-Dest': 'document',
-                'Sec-Fetch-Mode': 'navigate',
-                'Sec-Fetch-Site': 'none',
-                'Sec-Fetch-User': '?1',
-            }
-            response = requests.get(url, headers=headers, timeout=10)
+            response = requests.get(url, headers=self.headers, timeout=10)
             response.raise_for_status()
             soup = BeautifulSoup(response.content, 'html.parser')
 
@@ -2600,21 +2399,7 @@ class Crawler:
         print(f"Crawling Optisizer URL: {url}")
         
         try:
-            ### Set up headers to mimic a browser
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5,de;q=0.4',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'Connection': 'keep-alive',
-                'Upgrade-Insecure-Requests': '1',
-                'Sec-Fetch-Dest': 'document',
-                'Sec-Fetch-Mode': 'navigate',
-                'Sec-Fetch-Site': 'none',
-                'Sec-Fetch-User': '?1',
-            }
-            
-            response = requests.get(url, headers=headers, timeout=10)
+            response = requests.get(url, headers=self.headers, timeout=10)
             response.raise_for_status()
             soup = BeautifulSoup(response.content, 'html.parser')
             
@@ -2670,22 +2455,8 @@ class Crawler:
         print(f"Crawling ARI AG URL: {url}")
         
         try:
-            ### Set up headers to mimic a browser
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5,de;q=0.4',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'Connection': 'keep-alive',
-                'Upgrade-Insecure-Requests': '1',
-                'Sec-Fetch-Dest': 'document',
-                'Sec-Fetch-Mode': 'navigate',
-                'Sec-Fetch-Site': 'none',
-                'Sec-Fetch-User': '?1',
-            }
-            
             session = requests.Session()
-            response = session.get(url, headers=headers, timeout=30)
+            response = session.get(url, headers=self.headers, timeout=30)
             response.raise_for_status()
             
             time.sleep(5)
@@ -2741,21 +2512,7 @@ class Crawler:
             ### crate a session to keep cookies
             session = requests.Session()
             
-            ### set up headers to mimic a browser
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5,de;q=0.4',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'Connection': 'keep-alive',
-                'Upgrade-Insecure-Requests': '1',
-                'Sec-Fetch-Dest': 'document',
-                'Sec-Fetch-Mode': 'navigate',
-                'Sec-Fetch-Site': 'none',
-                'Sec-Fetch-User': '?1',
-            }
-            
-            response = session.get(url, headers=headers, timeout=20)
+            response = session.get(url, headers=self.headers, timeout=20)
             response.raise_for_status()
             time.sleep(5)
             
@@ -2808,21 +2565,8 @@ class Crawler:
         print(f"Crawling Edorex URL: {url}")
         
         try:
-            ### Set up headers to mimic a browser
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5,de;q=0.4',
-                'Accept-Encoding': 'identity',
-                'Connection': 'keep-alive',
-                'Upgrade-Insecure-Requests': '1',
-                'Sec-Fetch-Dest': 'document',
-                'Sec-Fetch-Mode': 'navigate',
-                'Sec-Fetch-Site': 'none',
-                'Sec-Fetch-User': '?1',
-            }
             session = requests.Session()
-            response = session.get(url, headers=headers, timeout=15)
+            response = session.get(url, headers=self.headers, timeout=15)
             response.raise_for_status()
             
             response.encoding = 'utf-8'
@@ -2874,22 +2618,8 @@ class Crawler:
         print(f"Crawling Diselva URL: {url}")
         
         try:
-            ### Set up headers to mimic a browser
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5,de;q=0.4',
-                'Accept-Encoding': 'identity',
-                'Connection': 'keep-alive',
-                'Upgrade-Insecure-Requests': '1',
-                'Sec-Fetch-Dest': 'document',
-                'Sec-Fetch-Mode': 'navigate',
-                'Sec-Fetch-Site': 'none',
-                'Sec-Fetch-User': '?1',
-            }
-            
             session = requests.Session()
-            response = session.get(url, headers=headers, timeout=30)
+            response = session.get(url, headers=self.headers, timeout=30)
             response.raise_for_status()
             response.encoding = 'utf-8'
             
@@ -2942,20 +2672,7 @@ class Crawler:
         print(f"Crawling APP URL: {url}")
         
         try:
-            ### Set up headers to mimic a browser
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5,de;q=0.4',
-                'Accept-Encoding': 'identity',
-                'Connection': 'keep-alive',
-                'Upgrade-Insecure-Requests': '1',
-                'Sec-Fetch-Dest': 'document',
-                'Sec-Fetch-Mode': 'navigate',
-                'Sec-Fetch-Site': 'none',
-                'Sec-Fetch-User': '?1',
-            }
-            response = requests.get(url, headers=headers, timeout=10)
+            response = requests.get(url, headers=self.headers, timeout=10)
             response.raise_for_status()
             response.encoding = 'utf-8'
             soup = BeautifulSoup(response.content, 'html.parser')
@@ -3008,20 +2725,7 @@ class Crawler:
         print(f"Crawling AdVision URL: {url}")
         
         try:
-            ### set up headers to mimic a browser
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5,de;q=0.4',
-                'Accept-Encoding': 'identity',
-                'Connection': 'keep-alive',
-                'Upgrade-Insecure-Requests': '1',
-                'Sec-Fetch-Dest': 'document',
-                'Sec-Fetch-Mode': 'navigate',
-                'Sec-Fetch-Site': 'none',
-                'Sec-Fetch-User': '?1',
-            }
-            response = requests.get(url, headers=headers, timeout=10)
+            response = requests.get(url, headers=self.headers, timeout=10)
             response.raise_for_status()
             response.encoding = 'utf-8'
             soup = BeautifulSoup(response.content, 'html.parser')
@@ -3068,25 +2772,12 @@ class Crawler:
             
                   
     
-    def crawl_xerxes(self, url, kexwords):
+    def crawl_xerxes(self, url, keywords):
         """Function to crawl Xerxes"""
         print(f"Crawling Xerxes URL: {url}")
         
         try:
-            ### set up header to mimic a browser
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5,de;q=0.4',
-                'Accept-Encoding': 'identity',
-                'Connection': 'keep-alive',
-                'Upgrade-Insecure-Requests': '1',
-                'Sec-Fetch-Dest': 'document',
-                'Sec-Fetch-Mode': 'navigate',
-                'Sec-Fetch-Site': 'none',
-                'Sec-Fetch-User': '?1',
-            }
-            response = requests.get(url, headers=headers, timeout=10)
+            response = requests.get(url, headers=self.headers, timeout=10)
             response.raise_for_status()
             response.encoding = 'utf-8'
             soup = BeautifulSoup(response.content, 'html.parser')
@@ -3139,20 +2830,7 @@ class Crawler:
         print(f"Crawling Webwirkung URL: {url}")
         
         try:
-            ### Set up headers to mimic a browser
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5,de;q=0.4',
-                'Accept-Encoding': 'identity',
-                'Connection': 'keep-alive',
-                'Upgrade-Insecure-Requests': '1',
-                'Sec-Fetch-Dest': 'document',
-                'Sec-Fetch-Mode': 'navigate',
-                'Sec-Fetch-Site': 'none',
-                'Sec-Fetch-User': '?1',
-            }
-            response = requests.get(url, headers=headers, timeout=10)
+            response = requests.get(url, headers=self.headers, timeout=10)
             response.raise_for_status()
             response.encoding = 'utf-8'
             soup = BeautifulSoup(response.content, 'html.parser')
@@ -3206,20 +2884,7 @@ class Crawler:
         print(f"Crawling St. Gallen Netgroup URL: {url}")
         
         try:
-            ### Set up headers to mimic a browser
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5,de;q=0.4',
-                'Accept-Encoding': 'identity',
-                'Connection': 'keep-alive',
-                'Upgrade-Insecure-Requests': '1',
-                'Sec-Fetch-Dest': 'document',
-                'Sec-Fetch-Mode': 'navigate',
-                'Sec-Fetch-Site': 'none',
-                'Sec-Fetch-User': '?1',
-            }
-            response = requests.get(url, headers=headers, timeout=10)
+            response = requests.get(url, headers=self.headers, timeout=10)
             response.raise_for_status()
             response.encoding = 'utf-8'
             soup = BeautifulSoup(response.content, 'html.parser')
@@ -3271,22 +2936,8 @@ class Crawler:
         """Function to crawl Robotron"""
         print(f"Crawling Robotron URL: {url}")
         
-        try:
-            ### Set up headers to mimic a browser
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5,de;q=0.4',
-                'Accept-Encoding': 'identity',
-                'Connection': 'keep-alive',
-                'Upgrade-Insecure-Requests': '1',
-                'Sec-Fetch-Dest': 'document',
-                'Sec-Fetch-Mode': 'navigate',
-                'Sec-Fetch-Site': 'none',
-                'Sec-Fetch-User': '?1',
-            }
-            
-            response = requests.get(url, headers=headers, timeout=10)
+        try:            
+            response = requests.get(url, headers=self.headers, timeout=10)
             response.raise_for_status()
             response.encoding = 'utf-8'
             soup = BeautifulSoup(response.content, 'html.parser')
@@ -3348,21 +2999,8 @@ class Crawler:
         print(f"Crawling JoshMartin URL: {url}")
         
         try:
-            ### set up headers to mimic a browser
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5,de;q=0.4',
-                'Accept-Encoding': 'identity',
-                'Connection': 'keep-alive',
-                'Upgrade-Insecure-Requests': '1',
-                'Sec-Fetch-Dest': 'document',
-                'Sec-Fetch-Mode': 'navigate',
-                'Sec-Fetch-Site': 'none',
-                'Sec-Fetch-User': '?1',
-            }
             session = requests.Session()
-            response = session.get(url, headers=headers, timeout=10)
+            response = session.get(url, headers=self.headers, timeout=10)
             response.raise_for_status()
             response.encoding = 'utf-8'
             soup = BeautifulSoup(response.content, 'html.parser')
@@ -3414,21 +3052,8 @@ class Crawler:
         print(f"Crawling Farner URL: {url}")
         
         try:
-            ### set up headers to mimic a browser
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5,de;q=0.4',
-                'Accept-Encoding': 'identity',
-                'Connection': 'keep-alive',
-                'Upgrade-Insecure-Requests': '1',
-                'Sec-Fetch-Dest': 'document',
-                'Sec-Fetch-Mode': 'navigate',
-                'Sec-Fetch-Site': 'none',
-                'Sec-Fetch-User': '?1',
-            }
             session = requests.Session()
-            response = session.get(url, headers=headers, timeout=15)
+            response = session.get(url, headers=self.headers, timeout=15)
             response.raise_for_status()
             response.encoding = 'utf-8'
         
@@ -3507,9 +3132,800 @@ class Crawler:
         except Exception as e:
             print(f"Error during extraction: {e}")
             return [], None
-                                
-           
+                                    
     
+    
+    def crawl_dynanet(self, url, keywords):
+        """Function to crawl DynaNet"""
+        print(f"Crawling DynaNet URL: {url}")
+        
+        try:            
+            response = requests.get(url, headers=self.headers, timeout=10)
+            response.raise_for_status()
+            response.encoding = 'utf-8'
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            # Find all section elements with class 'spaltenlayout'
+            layout_sections = soup.find_all('section', class_='spaltenlayout')
+            print(f"Found {len(layout_sections)} layout sections")
+            
+            # Make sure we have at least 2 sections
+            if len(layout_sections) < 2:
+                print("Couldn't find the second layout section")
+                return [], None
+                
+            # Get the second section (index 1)
+            job_section = layout_sections[1]
+            print(f"Job section: {job_section}")
+            
+            # Find job listings within this section
+            job_rows = job_section.find_all('div', class_='columns')
+            print(f"Found {len(job_rows)} job listings")
+            
+            content = []
+            for job in job_rows:
+                try:
+                    # Try to find a job title and link
+                    title_element = job.find('h3') or job.find('h4') or job.find('strong')
+                    if not title_element:
+                        continue
+                        
+                    title = title_element.text.strip()
+                    
+                    # Look for link
+                    link_element = job.find('a')
+                    link = link_element['href'] if link_element else url
+                    if not (link.startswith('http://') or link.startswith('https://')):
+                        link = 'https://dynanet.ch' + link
+                        
+                    location = 'St. Gallen'
+                    company = 'DynaNet'
+                    
+                    # Check if any keyword is in the title and if it's an IT job
+                    if any(keyword.lower() in title.lower() for keyword in keywords) and self.is_it_job(title):
+                        content.append({
+                            'title': title,
+                            'link': link,
+                            'location': location,
+                            'company': company
+                        })
+                        print(f"Found matching job: {title}")
+                    else:
+                        print(f"Skipping non-matching job: {title}")
+                except Exception as e:
+                    print(f"Error during extraction: {e}")
+                    continue
+                    
+            next_page = None
+            print(f"Found {len(content)} jobs")
+            return content, next_page
+            
+        except Exception as e:
+            print(f"Error during crawl: {e}")
+            return [], None
+   
+   
+   
+    def crawl_dachcom(self, url, keywords):
+        """Function to crawl Dachcom"""
+        print(f"Crawling Dachcom URL: {url}")
+        
+        try:            
+            response = requests.get(url, headers=self.headers, timeout=10)
+            response.raise_for_status()
+            response.encoding = 'utf-8'
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            job_section = soup.find('div', class_='toolbox-element toolbox-job-list')
+            print(f"Job section: {job_section}")
+
+            ### Check if the job section is valid            
+            if job_section and isinstance(job_section, Tag):
+                print(f"Job section is valid. Looking for job rows.")
+                job_rows = job_section.find_all('a', class_='toolbox-job-list--item blocklink job-list-item fx-fly-up')
+                if job_rows:
+                    print(f"Found {len(job_rows)} job rows")
+                else:
+                    print("No job rows found in the job section.")
+            else:
+                print("Job section is not valid or not found.")
+            
+            content = []
+            for job in job_rows:
+                try:
+                    title = job.find('div', class_='toolbox-job-list--title a icon-link link-arrow-right link-arrow-larger').text.strip()
+                    link = 'https://www.dachcom.com' + job['href']
+                    location = job.find('span', class_='toolbox-job-list--spacer').text.strip()
+                    company = 'Dachcom'
+                    
+                    ### Check if any keyword is in the title, location is in Ostschweiz and is an IT job
+                    if any(keyword.lower() in title.lower() for keyword in keywords) and self.is_location_in_ostschweiz(location) and self.is_it_job(title):
+                        content.append({
+                            'title': title,
+                            'link': link,
+                            'location': location,
+                            'company': company
+                        })
+                        print(f"Found matching job: {title}")
+                    else:
+                        print(f"Skipping non-matching job: {title}")
+                except Exception as e:
+                    print(f"Error during extraction: {e}")
+                    continue
+            next_page = None
+            print(f"Found {len(content)} jobs")
+            return content, next_page
+        
+        except Exception as e:
+            print(f"Error during crawl: {e}")
+            return [], None
+   
+   
+    
+    def crawl_adesso(self, url, keywords):
+        """Function to crawl Adesso"""
+        print(f"Crawling Adesso URL: {url}")
+        
+        try:
+            response = requests.get(url, headers=self.headers, timeout=10)
+            response.raise_for_status()
+            response.encoding = 'utf-8'
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            job_section = soup.find('div', class_='real_table_container')
+            print(f"Job section: {job_section}")
+            
+            if job_section and isinstance(job_section, Tag):
+                print(f"Job section is valid. Looking for job rows.")
+                job_rows = job_section.find_all(lambda tag : tag.name == 'tr' and tag.has_attr('class') and 
+                                                'alternative' in ' '.join(tag.get('class', [])))
+                if job_rows:
+                    print(f"Found {len(job_rows)} job rows")
+                else:
+                    print("No job rows found in the job section.")
+            else:
+                print("Job section is not valid or not found.")
+            
+            content = []
+            for job in job_rows:
+                title = job.find('a').text.strip()
+                
+                link_element = job.find('a')['href']
+                if link_element.startswith('http://') or link_element.startswith('https://'):
+                    link = link_element
+                else:
+                    link = 'https://www.adesso.ch' + link_element
+                
+                location = job.find('td', class_='real_table_col2').text.strip()
+                company = 'Adesso'
+                
+                ### Check if any keyword is in the title, location is in Ostschweiz and is an IT job
+                if any(keyword.lower() in title.lower() for keyword in keywords) and self.is_location_in_ostschweiz(location) and self.is_it_job(title):
+                    content.append({
+                        'title': title,
+                        'link': link,
+                        'location': location,
+                        'company': company
+                    })
+                    print(f"Found matching job: {title}")
+                else:
+                    print(f"Skipping non-matching job: {title}")
+            next_page = None
+            print(f"Found {len(content)} jobs")
+            return content, next_page
+        
+        except Exception as e:
+            print(f"Error during crawl: {e}")
+            return [], None
+        
+    
+    
+    def crawl_unisg(self, url, keywords):
+        """Function to crawl UniSG"""
+        print(f"Crawling UniSG URL: {url}")
+        
+        try:
+            response = requests.get(url, headers=self.headers, timeout=10)
+            response.raise_for_status()
+            response.encoding = 'utf-8'
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            job_section = soup.find('section', id='jobResults')
+            if job_section and isinstance(job_section, Tag):
+                print(f"Job section: {job_section}")
+                print(f"Job section is valid. Looking for job rows.")
+                job_rows = job_section.find_all('div', class_='eight wide computer column eight wide tablet column sixteen wide mobile column')
+                if job_rows:
+                    print(f"Found {len(job_rows)} job rows")
+                else:
+                    print("No job rows found in the job section.")
+            else:
+                print("Job section is not valid or not found.")
+            
+            content = []
+            for job in job_rows:
+                try:
+                    title_element = job.find('a')
+                    if title_element:
+                        title = title_element.find('h1').text.strip()
+                        link = title_element['href']
+                    else:
+                        print("No title element found")
+                    
+                    location = 'St. Gallen'
+                    company = 'UniSG'
+                    
+                    ### Check if any keyword is in the title and it is an IT job
+                    if any(keyword.lower() in title.lower() for keyword in keywords) and self.is_it_job(title):
+                        content.append({
+                            'title': title,
+                            'link': link,
+                            'location': location,
+                            'company': company
+                        })
+                        print(f"Found matching job: {title}")
+                    else:
+                        print(f"Skipping non-matching job: {title}")
+                except Exception as e:
+                    print(f"Error during extraction: {e}")
+                    continue
+            next_page = None
+            print(f"Found {len(content)} jobs")
+            return content, next_page
+        
+        except Exception as e:
+            print(f"Error during crawl: {e}")
+            return [], None
+                        
+            
+    
+    def crawl_svasg(self, url, keywords):
+        """Function to crawl SVA St. Gallen"""
+        print(f"Crawling SVA St. Gallen URL: {url}")
+        
+        try:
+            response = requests.get(url, headers=self.headers, timeout=10)
+            response.raise_for_status()
+            response.encoding = 'utf-8'
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            job_rows = soup.find_all(lambda tag: tag.name == 'tr' and
+                                        tag.has_attr('class') and
+                                        'nav-row' in ' '.join(tag.get('class', [])))
+            if job_rows:
+                print(f"Found {len(job_rows)} job rows")
+            else:
+                print("No job rows found in the job section.")
+            
+            content = []
+            for job in job_rows:
+                try:
+                    title = job.find('a').text.strip()
+                    link = job.find('a')['href']
+                    location = 'St. Gallen'
+                    company = 'SVA St. Gallen'
+                    
+                    ### Check if any keyword is in the title and if it's an IT job
+                    if any(keyword.lower() in title.lower() for keyword in keywords) and self.is_it_job(title):
+                        content.append({
+                            'title': title,
+                            'link': link,
+                            'location': location,
+                            'company': company
+                        })
+                        print(f"Found matching job: {title}")
+                    else:
+                        print(f"Skipping non-matching job: {title}")
+                except Exception as e:
+                    print(f"Error during extraction: {e}")
+                    continue
+            next_page = None
+            print(f"Found {len(content)} jobs")
+            return content, next_page
+        
+        except Exception as e:
+            print(f"Error during crawl: {e}")
+            return [], None
+        
+    
+    
+    def crawl_sgkb(self, url, keywords):
+        """Function to crawl St.Galler Kantonalbank"""
+        print(f"Crawling St.Galler Kantonalbank URL: {url}")
+        
+        try:
+            response = requests.get(url, headers=self.headers, timeout=10)
+            response.raise_for_status()
+            response.encoding = 'utf-8'
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            job_rows = soup.find_all('a', class_='searchitem')
+            
+            content = []
+            for job in job_rows:
+                try:
+                    title = job.find('h4').text.strip()
+                    link = 'https://www.sgkb.ch' + job['href']
+                    
+                    location_element = job.find_all('div', class_='col-12 col-md-4')[0]
+                    if location_element:
+                        #print(f"Location element: {location_element}")
+                        location = location_element.find('p').text.strip()
+                    else:
+                        print("No location element found")
+                    
+                    company = 'St.Galler Kantonalbank'
+                    
+                    ### Check if any keyword is in the title and if it's an IT job
+                    if any(keyword.lower() in title.lower() for keyword in keywords) and self.is_it_job(title):
+                        content.append({
+                            'title': title,
+                            'link': link,
+                            'location': location,
+                            'company': company
+                        })
+                        print(f"Found matching job: {title}")
+                    else:
+                        print(f"Skipping non-matching job: {title}")
+                except Exception as e:
+                    print(f"Error during extraction: {e}")
+                    continue
+            next_page = None
+            print(f"Found {len(content)} jobs")
+            return content, next_page
+
+        except Exception as e:
+            print(f"Error during crawl: {e}")
+            return [], None
+        
+        
+    
+    def crawl_sak(self, url, keywords):
+        """Function to crawl SAK"""
+        print(f"Crawling SAK URL: {url}")
+        
+        try:
+            response = requests.get(url, headers=self.headers, timeout=10)
+            response.raise_for_status()
+            response.encoding = 'utf-8'
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            job_section = soup.find('div', id='job-table')
+            print(f"Job section: {job_section}")
+            
+            if job_section and isinstance(job_section, Tag):
+                print(f"Job section is valid. Looking for job rows.")
+                job_rows = job_section.find_all('tr', class_='data-row')
+                if job_rows:
+                    print(f"Found {len(job_rows)} job rows")
+                else:
+                    print("No job rows found in the job section.")
+            else:
+                print("Job section is not valid or not found.")
+            
+            content = []
+            for job in job_rows:
+                try:
+                    title = job.find('a').text.strip()
+                    link = 'https://karriere.sak.ch' + job.find('a')['href']
+                    location = job.find('span', class_='jobLocation').text.strip()
+                    company = 'SAK'
+                    
+                    ### Check if any keyword is in the title and if it's an IT job
+                    if any(keyword.lower() in title.lower() for keyword in keywords) and self.is_it_job(title) and self.is_location_in_ostschweiz(location):
+                        content.append({
+                            'title': title,
+                            'link': link,
+                            'location': location,
+                            'company': company
+                        })
+                        print(f"Found matching job: {title}")
+                    else:
+                        print(f"Skipping non-matching job: {title}")
+                except Exception as e:
+                    print(f"Error during extraction: {e}")
+                    continue
+            
+            next_page = None
+            print(f"Found {len(content)} jobs")
+            return content, next_page
+
+        except Exception as e:
+            print(f"Error during crawl: {e}")
+            return [], None
+            
+                    
+                    
+    def crawl_psg(self, url, keywords):
+        """Function to crawl Psychiatrie St. Gallen"""
+        print(f"Crawling Psychiatrie St. Gallen URL: {url}")
+        
+        try:
+            response = requests.get(url, headers=self.headers, timeout=10)
+            response.raise_for_status()
+            response.encoding = 'utf-8'
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            job_rows = soup.find_all('a', class_='job')
+            if job_rows:
+                print(f"Found {len(job_rows)} job rows")
+                #print(f"Job rows: {job_rows}")
+            else:
+                print("No job rows found in the job section.")
+            
+            content = []
+            for job in job_rows:
+                try:
+                    title_element = job.find('div', class_='jobTitle')
+                    title = title_element.find('h2').text.strip() if title_element else ''
+                    link = job['href']
+                    location = job.find('div', class_='jobArbeitsOrt').text.strip()
+                    
+                    ### check if any keyword is in the title and if it's an IT job
+                    if any(keyword.lower() in title.lower() for keyword in keywords) and self.is_it_job(title):
+                        content.append({
+                            'title': title,
+                            'link': link,
+                            'location': location,
+                            'company': 'Psychiatrie St. Gallen'
+                        })
+                        print(f"Found matching job: {title}")
+                    else:
+                        print(f"Skipping non-matching job: {title}")
+                        
+                    
+                    
+                except Exception as e:
+                    print(f"Error during extraction: {e}")
+                    continue
+            next_page = None
+            print(f"Found {len(content)} jobs")
+            return content, next_page
+        
+        except Exception as e:
+            print(f"Error during crawl: {e}")
+            return [], None
+    
+    
+    
+    def craw_permapack(self, url, keywords):
+        """Function to crawl PermaPack"""
+        print(f"Crawling PermaPack URL: {url}")
+        
+        try:
+            response = requests.get(url, headers=self.headers, timeout=10)
+            response.raise_for_status()
+            response.encoding = 'utf-8'
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            job_rows = soup.find_all('a', class_='row')
+            if job_rows:
+                print(f"Found {len(job_rows)} job rows")
+                #print(f"Job rows: {job_rows}")
+            else:
+                print("No job rows found in the job section.")
+            
+            content = []
+            for job in job_rows:
+                try:
+                    title = job.find('span', class_='jobName').text.strip()
+                    link = 'https://jobs.dualoo.com/portal/' + job['href']
+                    location = job.find('span', class_='cityName').text.strip()
+                    company = 'PermaPack'
+                    
+                    ### Check if any keyword is in the title and if it's an IT job
+                    if any(keyword.lower() in title.lower() for keyword in keywords) and self.is_it_job(title):
+                        content.append({
+                            'title': title,
+                            'link': link,
+                            'location': location,
+                            'company': company
+                        })
+                        print(f"Found matching job: {title}")
+                    else:
+                        print(f"Skipping non-matching job: {title}")
+                except Exception as e:
+                    print(f"Error during extraction: {e}")
+                    continue
+            next_page = None
+            print(f"Found {len(content)} jobs")
+            return content, next_page
+        
+        except Exception as e:
+            print(f"Error during crawl: {e}")
+            return [], None
+                
+    
+    
+    def crawl_optimatik(self, url, keywords):
+        """Function to crawl Optimatik"""
+        print(f"Crawling Optimatik URL: {url}")
+        
+        try:
+            response = requests.get(url, headers=self.headers, timeout=10)
+            response.raise_for_status()
+            response.encoding = 'utf-8'
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            job_rows = soup.find_all('div', class_='red-highlight-box clearfix')
+            if job_rows:
+                print(f"Found {len(job_rows)} job rows")
+                #print(f"Job rows: {job_rows}")
+            else:
+                print("No job rows found in the job section.")
+            
+            content = []
+            for job in job_rows:
+                try:
+                    title = job.find('div', class_='right-col').text.strip()
+                    link = job.find('a', class_='ico-class')['href']
+                    location = 'Teufen'
+                    company = 'Optimatik'
+                    
+                    ### Check if any keyword is in the title and if it's an IT job
+                    if any(keyword.lower() in title.lower() for keyword in keywords) and self.is_it_job(title):
+                        content.append({
+                            'title': title,
+                            'link': link,
+                            'location': location,
+                            'company': company
+                        })
+                        print(f"Found matching job: {title}")
+                    else:
+                        print(f"Skipping non-matching job: {title}")
+                except Exception as e:
+                    print(f"Error during extraction: {e}")
+                    continue
+            next_page = None
+            print(f"Found {len(content)} jobs")
+            return content, next_page
+        
+        except Exception as e:
+            print(f"Error during crawl: {e}")
+            return [], None
+    
+    
+    
+    def crawl_oertli(self, url, keywords):
+        """Function to crawl Oertli"""
+        print(f"Crawling Oertli URL: {url}")
+        
+        try:
+            response = requests.get(url, headers=self.headers, timeout=10)
+            response.raise_for_status()
+            response.encoding = 'utf-8'
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            job_rows = soup.find_all('div', class_='joboffer_container')
+            if job_rows:
+                print(f"Found {len(job_rows)} job rows")
+                #print(f"Job rows: {job_rows}")
+            else:
+                print("No job rows found in the job section.")
+                
+            content = []
+            for job in job_rows:
+                try:
+                    title = job.find('a').text.strip()
+                    link = job.find('a')['href']
+                    location = job.find('div', class_='joboffer_informations joboffer_box').text.strip()
+                    company = 'Oertli'
+                    
+                    ### Check if any keyword is in the title, location is in Ostschweiz and is an IT job
+                    if any(keyword.lower() in title.lower() for keyword in keywords) and self.is_location_in_ostschweiz(location) and self.is_it_job(title):
+                        content.append({
+                            'title': title,
+                            'link': link,
+                            'location': location,
+                            'company': company
+                        })
+                        print(f"Found matching job: {title}")
+                    else:
+                        print(f"Skipping non-matching job: {title}")
+                except Exception as e:
+                    print(f"Error during extraction: {e}")
+                    continue
+            next_page = None
+            print(f"Found {len(content)} jobs")
+            return content, next_page
+        
+        except Exception as e:
+            print(f"Error during crawl: {e}")
+            return [], None
+    
+    
+    
+    def crawl_obt(self, url, keywords):
+        """Function to crawl OBT"""
+        print(f"Crawling OBT URL: {url}")
+        
+        try:
+            response = requests.get(url, headers=self.headers, timeout=10)
+            response.raise_for_status()
+            response.encoding = 'utf-8'
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            job_segment = soup.find('div', class_='Jobs__content')
+            print(f"found job segment")
+            if job_segment and isinstance(job_segment, Tag):
+                job_element = job_segment.find_all('div', class_='Jobs__cardEntries | js-entries')[3]
+                print(f"found Job Element {job_element}")
+                if job_element and isinstance(job_element, Tag):
+                    print(f"Job element is valid. Looking for job rows.")
+                    job_rows = job_element.find_all('div', class_='Jobs__cardEntriesItem | js-entry')
+                    print(f"Found {len(job_rows)} job rows")
+                else:
+                    print("Job element is not valid or not found.")
+            else:
+                print("Job segment is not valid or not found.")
+            
+            content = []
+            for job in job_rows:
+                try:
+                    title = job.find('h6', class_='Jobs__cardEntriesItemTitle').text.strip()
+                    link = 'https://www.obt.ch' +  job.find('a')['href']
+                    location = job.find('div', class_='Jobs__cardEntriesInfoPointTitle').text.strip()
+                    company = 'OBT'
+                    
+                    ### Check if keyword is in title, if job is in Ostschweiz and if it's an IT job
+                    if any(keyword.lower() in title.lower() for keyword in keywords) and self.is_location_in_ostschweiz(location) and self.is_it_job(title):
+                        content.append({
+                            'title': title,
+                            'link': link,
+                            'location': location,
+                            'company': company
+                        })
+                        print(f"Found matching job: {title}")
+                    else:
+                        print(f"Skipping non-matching job: {title}")
+                except Exception as e:
+                    print(f"Error during extraction: {e}")
+                    continue
+            next_page = None
+            print(f"Found {len(content)} jobs")
+            return content, next_page
+        
+        except Exception as e:
+            print(f"Error during crawl: {e}")
+            return [], None
+    
+    
+    
+    def crawl_netsafe(self, url, keywords):
+        """Function to crawl Netsafe"""
+        print(f"Crawling Netsafe URL: {url}")
+        
+        try: 
+            response = requests.get(url, headers=self.headers, timeout=10)
+            response.raise_for_status()
+            response.encoding = 'utf-8'
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            job_element = soup.find('div', id='jobs_grid')
+            
+            if job_element and isinstance(job_element, Tag):
+                print(f"Job element is valid. Looking for job rows.")
+                #print(f"Job element: {job_element}")
+                job_rows = job_element.find_all(lambda tag: tag.name == 'a' and
+                                         tag.has_attr('class') and 
+                                        'text-decoration-none' in ' '.join(tag.get('class', [])))
+                if job_rows:
+                    print(f"Found {len(job_rows)} job rows")
+                    #print(f"Job rows: {job_rows}")
+                else:
+                    print("No job rows found in the job element.")
+            else:
+                print("Job element is not valid or not found.")
+                
+            content = []
+            for job in job_rows:
+                try:
+                    title_element = job.find('h3', class_='text-secondary mt0 mb4')
+                    title = title_element.find('span').text.strip() if title_element else ''
+                    link = 'https://www.netsafe.ch' + job['href']
+                    #print(f"Link: {link}")
+                    location = job.find('span', class_='w-100 o_force_ltr d-block').text.strip()
+                    company = 'Netsafe'
+                    
+                    ### Check if any keyword is in the title, location is in Ostschweiz and is an IT job
+                    if any(keyword.lower() in title.lower() for keyword in keywords) and self.is_location_in_ostschweiz(location) and self.is_it_job(title):
+                        content.append({
+                            'title': title,
+                            'link': link,
+                            'location': location,
+                            'company': company
+                        })
+                        print(f"Found matching job: {title}")
+                    else:
+                        print(f"Skipping non-matching job: {title}")
+                except Exception as e:
+                    print(f"Error during extraction: {e}")
+                    continue
+            next_page = None
+            print(f"Found {len(content)} jobs")
+            return content, next_page
+        
+        except Exception as e:
+            print(f"Error during crawl: {e}")
+            return [], None
+            
+    
+    
+    def crawl_neovac(self, url, keywords):
+        """Function to crawl Neovac"""
+        print(f"Crawling Neovac URL: {url}")
+        
+        try:
+            response = requests.get(url, headers=self.headers, timeout=10)
+            response.raise_for_status()
+            response.encoding = 'utf-8'
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            job_sections = soup.find_all('div', class_='toolbox-element toolbox-job-overview')
+            print(f"Found {len(job_sections)} job sections")
+            #print(f"Job section: {job_section}")
+            
+            for job_section in job_sections:
+                if job_section and isinstance(job_section, Tag):
+                    print(f"Job section is valid. Looking for job rows.")
+                    #print(f"Job section: {job_section}")
+
+                    ### Find the script elemeent the x-data attribute
+                    script_data = job_section.get('x-data', '')
+
+                    ### Extract jo data from JavaScript object (second parameter in jobfiltering)
+                    if script_data:
+                        ### Find the JSON array of jobs - it's the second parameter in the jobfiltering function
+                        pattern = r'jobFiltering\(.+?, (\[.*?\])\)'
+                        if isinstance(script_data, str):
+                            match = re.search(pattern, script_data, re.DOTALL)
+                        else:
+                            match = None
+
+                        if match:
+                            job_json = match.group(1)
+                            try: 
+                                job_data = json.loads(job_json)
+                                print(f"Succssfully extracted {len(job_data)} jobs from JavaScript object")
+
+                                content = []
+                                for job in job_data:
+                                    title = job.get('jobTitle', '')
+                                    link = job.get('detailLink', '')
+                                    location = job.get('placeOfWork', '')
+                                    company = 'Neovac'
+
+                                    ### Check if any keyword is in the title, location is in Ostschweiz and is an IT job
+                                    if any(keyword.lower() in title.lower() for keyword in keywords) and self.is_location_in_ostschweiz(location) and self.is_it_job(title):
+                                        content.append({
+                                            'title': title,
+                                            'link': link,
+                                            'location': location,
+                                            'company': company
+                                        })
+                                        print(f"Found matching job: {title}")
+                                    else:
+                                        print(f"Skipping non-matching job: {title}")
+                                next_page = None
+                                print(f"Found {len(content)} jobs")
+                                return content, next_page
+                            except json.JSONDecodeError as e:
+                                print(f"Error decoding JSON: {e}")
+                        else:
+                            print("No job data found in the JavaScript object")
+                    else:
+                        print("No x-data attribute found in the job section") 
+                else:
+                    print("Job section is not valid or not found.")
+            
+            return [], None
+        
+        except Exception as e:
+            print(f"Error during crawl: {e}")
+            return [], None
+    
+                
+   
     def __del__(self):
         """Destructor to safely close database connection"""
         try:
@@ -3521,6 +3937,6 @@ class Crawler:
 if __name__ == "__main__":
     ### Testing the crawler
     crawler = Crawler()
-    keywords = ['praktikum', 'werkstudent', 'praktika', 'media']
-    url = 'https://www.farner.ch/de/jobs/'
+    keywords = ['praktikum', 'werkstudent', 'praktika', 'engineer']
+    url = 'https://www.neovac.ch/jobs'
     crawler.crawl(url, keywords)

@@ -10,6 +10,7 @@ import time
 from database_config import get_db_path
 import urllib.parse
 import json
+import traceback
 
 
 class CustomHTTPAdapter(HTTPAdapter):
@@ -250,12 +251,24 @@ class Crawler:
                 elif 'obt.ch/de/karriere' in current_url:
                     print(f"OBT: {'.obt.ch/de/karriere' in current_url}")
                     page_content, next_url = self.crawl_obt(current_url, keywords)
-                elif 'https://www.netsafe.ch/jobs' in current_url:
-                    print(f"Netsafe: {'https://www.netsafe.ch/jobs' in current_url}")
+                elif 'netsafe.ch/jobs' in current_url:
+                    print(f"Netsafe: {'netsafe.ch/jobs' in current_url}")
                     page_content, next_url = self.crawl_netsafe(current_url, keywords)
                 elif 'www.neovac.ch/jobs' in current_url:
                     print(f"Neovac: {'www.neovac.ch/jobs' in current_url}")
                     page_content, next_url = self.crawl_neovac(current_url, keywords)
+                elif 'jobs.mtf.ch/de/jobportal' in current_url:
+                    print(f"MTF: {'jobs.mtf.ch/de/jobportal' in current_url}")
+                    page_content, next_url = self.crawl_mtf(current_url, keywords)
+                elif 'msdirectgroup-jobs' in current_url:
+                    print(f"MS Direct Group: {'msdirectgroup-jobs' in current_url}")
+                    page_content, next_url = self.crawl_msdirect(current_url, keywords)
+                elif 'search-api.metrohm.com' in current_url:
+                    print(f"Metrohm: {'search-api.metrohm.com' in current_url}")
+                    page_content, next_url = self.crawl_metrohm(current_url, keywords)
+                elif 'dentsuaegis.wd3' in current_url:
+                    print(f"Dentsu Aegis: {'dentsuaegis.wd3' in current_url}")
+                    page_content, next_url = self.crawl_merkle(current_url, keywords)
                 else:
                     print(f"Unknown URL: {current_url}")
                     return
@@ -3870,7 +3883,7 @@ class Crawler:
                     print(f"Job section is valid. Looking for job rows.")
                     #print(f"Job section: {job_section}")
 
-                    ### Find the script elemeent the x-data attribute
+                    ### Find the script element with the x-data attribute
                     script_data = job_section.get('x-data', '')
 
                     ### Extract jo data from JavaScript object (second parameter in jobfiltering)
@@ -3924,7 +3937,296 @@ class Crawler:
             print(f"Error during crawl: {e}")
             return [], None
     
+    
+    
+    def crawl_mtf(self, url, keywords):
+        """Function to crawl MTF"""
+        print(f"Crawling MTF URL: {url}")
+        
+        try:
+            response = requests.get(url, headers=self.headers, timeout=10)
+            response.raise_for_status()
+            response.encoding = 'utf-8'
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            job_rows = soup.find_all('article', id='page-job-138')
+            if job_rows:
+                print(f"Found {len(job_rows)} job rows")
+                #print(f"Job rows: {job_rows}")
+            else:
+                print("No job rows found in the job section.")
+            
+            content = []
+            for job in job_rows:
+                try:
+                    title = job.find('span', class_='row row-1').text.strip()
+                    link = job.find('a', class_='object-link')['href']
+                    location = job.find('span', class_='job-places').text.strip()
+                    company = 'MTF'
+                    
+                    ### check if any keyword is in the title, location is in Ostschweiz and is an IT job
+                    if any(keyword.lower() in title.lower() for keyword in keywords) and self.is_location_in_ostschweiz(location) and self.is_it_job(title):
+                        content.append({
+                            'title': title,
+                            'link': link,
+                            'location': location,
+                            'company': company
+                        })
+                        print(f"Found matching job: {title}")
+                    else:
+                        print(f"Skipping non-matching job: {title}")
+                except Exception as e:
+                    print(f"Error during extraction: {e}")
+                    continue
+            next_page = None
+            print(f"Found {len(content)} jobs")
+            return content, next_page
+        
+        except Exception as e:
+            print(f"Error during crawl: {e}")
+            return [], None
+    
+    
+    
+    def crawl_msdirect(self, url, keywords):
+        """Function to crawl MSDirect"""
+        print(f"Crawling MSDirect URL: {url}")
+        
+        try:
+            response = requests.get(url, headers=self.headers, timeout=10)
+            response.raise_for_status()
+            response.encoding = 'utf-8'
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            job_rows = soup.find_all(lambda tag: tag.name == 'div' and
+                                        tag.has_attr('class') and
+                                        'row nav-row' in ' '.join(tag.get('class', [])))
+            if job_rows:
+                print(f"Found {len(job_rows)} job rows")
+                #print(f"Job rows: {job_rows}")
+            else:
+                print("No job rows found in the job section.")
                 
+            content = []
+            for job in job_rows:
+                try:
+                    ### extract title 
+                    title = job.find('a', class_='nav-item font').text.strip()
+                    if title:
+                        print(f"Title element: {title}")
+         
+                    ### extract link   
+                    link_element = job.find('a', class_='nav-item font')['href']
+                    if link_element.startswith('/'):
+                        link = 'https://msdirectgroup-jobs.abacuscity.ch' + link_element
+                    else:
+                        link = link_element
+                        
+                    ### extract location
+                    location = job.find('span', class_='nav-filter jobsfiltercolumncontent cl6a9b5550-033d-74d4-f2f2-1b0e19589c4f').text.strip()
+                    if location:
+                        print(f"Location element: {location}")
+                    
+                    ### extract company                 
+                    company = job.find('span', class_='nav-filter jobsfiltercolumncontent clada51a77-64c4-e8dc-646e-40de4a1d6ce3').text.strip()
+                    
+                    ### check if any keyword is in the title, location is in Ostschweiz and is an IT job
+                    if any(keyword.lower() in title.lower() for keyword in keywords) and self.is_location_in_ostschweiz(location) and self.is_it_job(title):
+                        content.append({
+                            'title': title,
+                            'link': link,
+                            'location': location,
+                            'company': company
+                        })
+                        print(f"Found matching job: {title}")
+                    else:
+                        print(f"Skipping non-matching job: {title}")
+                except Exception as e:
+                    print(f"Error during extraction: {e}")
+                    continue
+            next_page = None
+            print(f"Found {len(content)} jobs")
+            return content, next_page
+        
+        except Exception as e:
+            print(f"Error during crawl: {e}")
+            return [], None
+                    
+    
+    
+    def crawl_metrohm(self, url, keywords):
+        """Function to crawl Metrohm"""
+        print(f"Crawling Metrohm API: {url}")
+        
+        try:
+            response = requests.get(url, headers=self.api_headers, timeout=10)
+            response.raise_for_status()
+            
+            data = response.json()
+            
+            job_rows = data['results']
+            if job_rows:
+                print(f"Found {len(job_rows)} job rows")
+                #print(f"Job rows: {job_rows}")
+            else:
+                print("No job rows found in the job section.")
+            
+            content = []
+            for job in job_rows:
+                try:
+                    title = job.get('title', '')
+                    link = 'https://www.metrohm.com' + job.get('url', '')
+                    company = 'Metrohm'
+                    location = 'Herisau'
+                    
+                    ### Check if any keyword is in the title and if it's an IT job
+                    if any(keyword.lower() in title.lower() for keyword in keywords) and self.is_it_job(title):
+                        content.append({
+                            'title': title,
+                            'link': link,
+                            'location': location,
+                            'company': company
+                        })
+                        print(f"Found matching job: {title}")
+                    else:
+                        print(f"Skipping non-matching job: {title}")
+                except Exception as e:
+                    print(f"Error during extraction: {e}")
+                    continue
+            next_page = None
+            print(f"Found {len(content)} jobs")
+            return content, next_page
+        
+        except Exception as e:
+            print(f"Error during crawl: {e}")
+            return [], None
+            
+    
+    
+    def crawl_merkle(self, url, keywords):
+        """Function to crawl Merkle using Selenium"""
+        print(f"Crawling Merkle URL {url}")       
+
+        ### Crawl this page with selenium because JS-rendered content
+        try:
+            ### Import Selenium libraries
+            from selenium import webdriver
+            from selenium.webdriver.chrome.service import Service
+            from selenium.webdriver.chrome.options import Options
+            from selenium.webdriver.common.by import By
+            from selenium.webdriver.support.ui import WebDriverWait
+            from selenium.webdriver.support import expected_conditions as EC
+            from webdriver_manager.chrome import ChromeDriverManager
+            import time
+
+            ### Set up Chrome in headless mode
+            chrome_options = Options()
+            chrome_options.add_argument("--headless")
+            chrome_options.add_argument("--no-sandbox")
+            chrome_options.add_argument("--disable-dev-shm-usage")
+            chrome_options.add_argument("--window-size=1920,1080")
+
+            ### Initialize the Chrome driver
+            print("Initializing Chrome driver...")
+            driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+
+            content = []
+            try:
+                ### Load the page with Selenium
+                print(f"Loading job listing page: {url}")
+                driver.get(url)
+
+                ### Wait for the page to load completely
+                wait = WebDriverWait(driver, 20)
+                time.sleep(5)  # Additional wait for all JS to execute
+
+                ### Get page source after JavaScript has rendered the content
+                page_source = driver.page_source
+                soup = BeautifulSoup(page_source, 'html.parser')
+
+                ### Check if the jobs are loaded
+                job_segment = soup.find('section', class_='css-27w6p6')
+                if job_segment and isinstance(job_segment, Tag):
+                    print("Job segment found. Looking for job rows.")
+                    job_rows = job_segment.find_all('li', class_='css-1q2dra3')
+                    print(f"Found {len(job_rows)} job rows")
+                else:
+                    print("No job segment found. Looking for alternative selectors.")
+                    ### Try alternative selectors if the expected structure isn't found
+                    job_rows = soup.find_all('a', attrs={'data-automation-id': 'jobTitle'})
+                    print(f"Found {len(job_rows)} job rows with alternative selector")
+
+                ### Process each job
+                for job in job_rows:
+                    try:
+                        if job.name == 'li':
+                            title = job.find('a', class_='css-19uc56f').text.strip()
+                            link = 'https://dentsuaegis.wd3.myworkdayjobs.com' + job.find('a')['href']
+                        else:
+                            ### Alternative structure
+                            title = job.text.strip()
+                            link = 'https://dentsuaegis.wd3.myworkdayjobs.com' + job['href']
+
+                        print(f"Processing job: {title}")
+                        company = 'Merkle'
+
+                        ### Visit job detail page
+                        print(f"Loading job details page: {link}")
+                        driver.get(link)
+                        wait.until(EC.presence_of_element_located((By.TAG_NAME, "body")))
+                        ### Wait for page to load
+                        time.sleep(3)  
+
+                        ### Get location information from the job detail page
+                        job_detail_source = driver.page_source
+                        job_soup = BeautifulSoup(job_detail_source, 'html.parser')
+
+                        location_elements = job_soup.find_all('dd', class_='css-129m7dg')
+                        location = "Unknown Location"
+                        for location_element in location_elements:
+                            loc_text = location_element.text.strip()
+                            print(f"Found location element: {loc_text}")
+                            location = loc_text
+                            if self.is_location_in_ostschweiz(loc_text):
+                                print(f"Location is in Ostschweiz: {loc_text}")
+                                location = loc_text
+                                break
+                            
+                        ### Check if job matches criteria
+                        if any(keyword.lower() in title.lower() for keyword in keywords) and self.is_it_job(title):
+                            content.append({
+                                'title': title,
+                                'link': link,
+                                'location': location,
+                                'company': company
+                            })
+                            print(f"Found matching job: {title}")
+                        else:
+                            print(f"Skipping non-matching job: {title}")
+
+                    except Exception as e:
+                        print(f"Error processing job: {e}")
+                        continue
+
+                next_page = None
+                print(f"Found {len(content)} matching jobs")
+                return content, next_page
+
+            finally:
+                ### close the driver
+                print("Closing Chrome driver")
+                driver.quit()
+
+        except Exception as e:
+            print(f"Error during crawl: {e}")
+            traceback.print_exc()
+            return [], None
+            
+            
+                                
+        
+        
+        
    
     def __del__(self):
         """Destructor to safely close database connection"""
@@ -3937,6 +4239,6 @@ class Crawler:
 if __name__ == "__main__":
     ### Testing the crawler
     crawler = Crawler()
-    keywords = ['praktikum', 'werkstudent', 'praktika', 'engineer']
-    url = 'https://www.neovac.ch/jobs'
+    keywords = ['praktikum', 'werkstudent', 'praktika', 'consult']
+    url = 'https://dentsuaegis.wd3.myworkdayjobs.com/de-DE/DAN_GLOBAL/jobs?source=Merkle&locationCountry=187134fccb084a0ea9b4b95f23890dbe'
     crawler.crawl(url, keywords)

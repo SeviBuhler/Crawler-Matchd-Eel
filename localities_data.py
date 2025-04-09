@@ -110,6 +110,8 @@ LOCALITIES_DATA = [
     ("St. Gallen", "SG"),
     ("St. Gallen", "SG"),
     ("St. Gallen", "SG"),
+    ("St.Gallen", "SG"),
+    ("Sankt Gallen", "SG"),
     ("Abtwil SG", "SG"),
     ("Speicherschwendi", "SG"),
     ("Speicher", "SG"),

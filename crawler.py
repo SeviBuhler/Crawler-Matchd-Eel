@@ -269,6 +269,12 @@ class Crawler:
                 elif 'dentsuaegis.wd3' in current_url:
                     print(f"Dentsu Aegis: {'dentsuaegis.wd3' in current_url}")
                     page_content, next_url = self.crawl_merkle(current_url, keywords)
+                elif 'management.ostjob.ch/minisite/62' in current_url:
+                    print(f"Kellenberger: {'kellenberger.com/de/stellenanzeigen' in current_url}")
+                    page_content, next_url = self.crawl_kellenberger(current_url, keywords)
+                elif 'jobs.dualoo.com/portal/elj8aw7v?lang=DE' in current_url:
+                    print(f"Laveba Genossenschaft: {'jobs.dualoo.com/portal/elj8aw7v?lang=DE' in current_url}")
+                    page_content, next_url = self.crawl_laveba(current_url, keywords)
                 else:
                     print(f"Unknown URL: {current_url}")
                     return
@@ -1025,7 +1031,8 @@ class Crawler:
     def crawl_digitalliechtenstein(self, url, keywords):
         """Crawl function for digitalliechtenstein.ch"""
         print(f"Crawling digitalliechtenstein URL: {url}")
-        try:            
+        try:
+            time.sleep(2)            
             response = requests.get(url, headers=self.headers, timeout=10)
             soup = BeautifulSoup(response.content, 'html.parser')
             
@@ -4224,8 +4231,101 @@ class Crawler:
             
             
                                 
+    def crawl_kellenberger(self, url, keywords):
+        """Function to crawl Kellenberger"""    
+        print(f"Crawling Kellenberger URL: {url}")
         
+        try:
+            response = requests.get(url, headers=self.headers, timeout=10)
+            response.raise_for_status()
+            response.encoding = 'utf-8'
+            
+            soup = BeautifulSoup(response.content, 'html.parser')
+            print(soup.prettify())
+            
+            job_segment = soup.find('div', class_='vacancy-list__items vacancy-list__items--grouped-by-name')
+            if job_segment and isinstance(job_segment, Tag):
+                print(f'Job segment is valid. Looking for job rows.')
+                job_rows = job_segment.find_all('div', class_='vacancy-list__item')
+                print(f"Found {len(job_rows)} job rows")
+            else:
+                print("Job segment is not valid or not found.")
+            
+            content = []
+            for job in job_rows:
+                try:
+                    title = job.find('a', class_='vacancy__title-link').text.strip()
+                    link = 'ttps://management.ostjob.ch' + job.find('a')['href']
+                    location = job.find('span', class_='vacancy__workplace-city').text.strip()
+                    company = 'Kellenberger'
+                    
+                    ### Check if any keyword is in the title and if it's an IT job
+                    if any(keyword.lower() in title.lower() for keyword in keywords) and self.is_it_job(title):
+                        content.append({
+                            'title': title,
+                            'link': link,
+                            'location': location,
+                            'company': company
+                        })
+                        print(f"Found matching job: {title}")
+                    else:
+                        print(f"Skipping non-matching job: {title}")
+                except Exception as e:
+                    print(f"Error during extraction: {e}")
+                    continue
+            next_page = None
+            print(f"Found {len(content)} jobs")
+            return content, next_page
         
+        except Exception as e:
+            print(f"Error during crawl: {e}")
+            return [], None
+            
+        
+    
+    def crawl_laveba(self, url, keywords):
+        """Function to crawl Laveba Genossenscahft"""
+        print(f"Crawling Laveba URL: {url}")
+        
+        try: 
+            response = requests.get(url, headers=self.headers, timeout=10)
+            response.raise_for_status()
+            response.encoding = 'utf-8'
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            job_rows = soup.find_all('a', class_='row jobElement pt-2 pb-2 text-decoration-none')
+            if job_rows:
+                print(f"Found {len(job_rows)} job rows")
+            else:
+                print("No job rows found in the job section.")
+            
+            content = []    
+            for job in job_rows:
+                title = job.find('span', class_='jobName').text.strip()
+                link = 'https://jobs.dualoo.com/portal/' + job['href']
+                location = job.find('span', class_='cityName').text.strip()
+                company = 'Laveba'
+                
+                ### Check if any keyword is in the title, location is in Ostschweiz and is an IT job
+                if any(keyword.lower() in title.lower() for keyword in keywords) and self.is_location_in_ostschweiz(location) and self.is_it_job(title):
+                    content.append({
+                        'title': title,
+                        'link': link,
+                        'location': location,
+                        'company': company
+                    })
+                    print(f"Found matching job: {title}")
+                else:
+                    print(f"Skipping non-matching job: {title}")
+            next_page = None
+            print(f"Found {len(content)} jobs")
+            return content, next_page
+        
+        except Exception as e:
+            print(f"Error during crawl: {e}")
+            return [], None
+
+    
         
    
     def __del__(self):
@@ -4240,5 +4340,5 @@ if __name__ == "__main__":
     ### Testing the crawler
     crawler = Crawler()
     keywords = ['praktikum', 'werkstudent', 'praktika', 'consult']
-    url = 'https://dentsuaegis.wd3.myworkdayjobs.com/de-DE/DAN_GLOBAL/jobs?source=Merkle&locationCountry=187134fccb084a0ea9b4b95f23890dbe'
+    url = 'https://jobs.dualoo.com/portal/elj8aw7v?lang=DE'
     crawler.crawl(url, keywords)

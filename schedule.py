@@ -99,6 +99,8 @@ class CrawlerScheduler:
             ### Remove existing email job if it exists
             try:
                 self.scheduler.remove_job(self.email_job_id)
+                self.scheduler.remove_job('database_cleanup')
+                self.scheduler.remove_job('reset_daily_tracking')
             except:
                 pass
             
@@ -109,8 +111,19 @@ class CrawlerScheduler:
                 id=self.email_job_id
             )
             
-            reset_minute = (minute + 5) % 60
-            reset_hour = hour + ((minute +5) // 60)
+            ### Schedule cleanup job to run 5 minutes after teh email job
+            cleanup_minute = (minute + 5) % 60
+            cleanup_hour = hour + ((minute +5) // 60)
+            
+            self.scheduler.add_job(
+                self.cleanup_after_daily_crawls,
+                CronTrigger(hour=cleanup_hour, minute=cleanup_minute, timezone=self.timezone),
+                id='database_cleanup'
+            )
+            
+            ### Reset completed crawls list 10 minutes after email
+            reset_minute = (minute + 10) % 60
+            reset_hour = hour + ((minute + 10) // 60)
             
             ### Reset completed crawls list at daily report time
             self.scheduler.add_job(
@@ -119,7 +132,10 @@ class CrawlerScheduler:
                 id='reset_daily_tracking'
             )
             
-            logger.info(f"Email job scheduled at {email_time} successfully")
+            logger.info(f"Email job scheduled at {email_time}")
+            logger.info(f"Database cleanup scheduled at {cleanup_hour}:{cleanup_minute:02d}")
+            logger.info(f"Daily tracking reset scheduled at {reset_hour}:{reset_minute:02d}")
+            
         except Exception as e:
             logger.error(f"Error scheduling email job: {e}")
         finally:
@@ -258,12 +274,19 @@ class CrawlerScheduler:
     def execute_crawl(self, crawl_id, url, keywords):
         """Execute a crawl"""
         self.active_crawls.add(crawl_id)
+        removed_jobs = []
+        
         try:
             current_time = datetime.now(self.timezone)
+            current_date = current_time.strftime('%Y-%m-%d %H:%M:%S')
             logger.info(f'Starting crawl {crawl_id} at {datetime.now(self.timezone)}')
             
             ### Initialize your crawler
             crawler = Crawler()
+            
+            ### store the base URL for later use
+            base_url = url
+            
             ### Execute crawl
             results = crawler.crawl(url, keywords)
             
@@ -276,45 +299,113 @@ class CrawlerScheduler:
             cursor = conn.cursor()
             
             try:
+                ### Mark all existing jobs as potentially inactive
+                cursor.execute('''
+                    UPDATE crawl_results
+                    SET is_active = 0
+                    WHERE crawl_id = ? AND crawl_url = ? AND is_active = 1
+                ''', (crawl_id, base_url))               
+                
+                ### Get all links that were acitve before this update
+                cursor.execute('''
+                    SELECT id, title, company, location, link
+                    FROM crawl_results
+                    WHERE crawl_id = ? AND crawl_url = ? AND is_active = 0
+                ''', (crawl_id, base_url))
+                
+                previous_jobs = {row[4]: row for row in cursor.fetchall()}
+                
                 new_jobs = 0
-                existing_jobs = 0
+                updated_jobs = 0
                 
                 for result in results:
-                    ### Check if the job already exists
-                    cursor.execute("""
-                        SELECT id FROM crawl_results 
-                        WHERE crawl_id = ? 
-                        AND link = ?
-                    """, (
-                        crawl_id, 
-                        result['link']
-                    ))
+                    link = result['link']
                     
-                    existing_job = cursor.fetchone()
-                    
-                    if not existing_job:
-                        ### If job does not exist, insert it
-                        cursor.execute("""
-                            INSERT INTO crawl_results 
-                            (crawl_id, title, company, location, link, crawl_date)
-                            VALUES (?, ?, ?, ?, ?, ?)
-                        """, (
-                            crawl_id, 
-                            result['title'], 
-                            result['company'], 
-                            result['location'], 
-                            result['link'],
-                            current_time.strftime('%Y-%m-%d %H:%M:%S')
-                        ))
-                        new_jobs += 1
+                    if link in previous_jobs:
+                        ### If job still exists, update it and set it to active
+                        job_id = previous_jobs[link][0]
+                        cursor.execute('''
+                            UPDATE crawl_results
+                            SET is_active = 1, last_seen = ?
+                            WHERE id = ?
+                        ''', (current_date, job_id))   
+                        updated_jobs += 1
+                        
+                        ### Remove from previous_jobs dict to track which were not found
+                        del previous_jobs[link]
                     else:
-                        existing_jobs += 1
+                        ### Check if this job already exists but was previously marked inactive
+                        cursor.execute('''
+                            SELECT id FROM crawl_results
+                            WHERE crawl_id = ? AND link = ?              
+                        ''', (crawl_id, link))
+                        
+                        existing_job = cursor.fetchone()
+                        
+                        if existing_job:
+                            ### Reactivate the job
+                            cursor.execute('''
+                                UPDATE crawl_results
+                                SET is_active = 1, last_seen = ?
+                                WHERE id = ?
+                            ''', (current_date, existing_job[0]))
+                            updated_jobs += 1
+                        else:
+                            ### If job does not exist, insert it
+                            cursor.execute('''
+                                INSERT INTO crawl_results 
+                                (crawl_id, crawl_url, title, company, location, link, crawl_date, last_seen, is_active)
+                                VALUES (?, ?, ?, ?, ?, ?, ?, 1)
+                            ''', (
+                                crawl_id,
+                                base_url,
+                                result['title'],
+                                result.get('company', 'Not specified'), 
+                                result.get('location', 'Not specified'),
+                                result['link'],
+                                current_date,
+                                current_date
+                            ))
+                            new_jobs += 1
                 
+                ### Process jobs that were not found in this crawl
+                removed_count = len(previous_jobs)
+                
+                ### Collect information about removed jobs for notification
+                for link, job_data in previous_jobs.items():
+                    job_id, title, company, location, _ = job_data
+                    removed_jobs.append({
+                        'id': job_id,
+                        'title': title,
+                        'company': company,
+                        'location': location,
+                        'link': link
+                    })
+                
+                ### Add removed jobs to the removed_jobs table
+                if removed_jobs:
+                    for job in removed_jobs:
+                        ### Insert removed job into the removed_jobs table
+                        cursor.execute('''
+                            INSERT INTO removed_jobs
+                            (job_id, title, company, location, link, removal_date)
+                            VALUES (?, ?, ?, ?, ?, ?)
+                        ''', (
+                            job['id'],
+                            crawl_id,
+                            job['title'],
+                            job['company'],
+                            job['location'],
+                            job['link'],
+                            current_date
+                        ))
+                                        
                 conn.commit()
-                logger.info(f"Completed crawl {crawl_id} - Added {new_jobs} new jobs, {existing_jobs} existing jobs")
-            
+                logger.info(f"Completed crawl {crawl_id} - Added {new_jobs} new jobs, updated {updated_jobs} existing jobs, removed {removed_count} jobs")
+                
             finally:
-                conn.close()                        
+                conn.close()
+                
         except Exception as e:
             logger.error(f'Error executing crawl {crawl_id}: {e}')
         
@@ -363,6 +454,47 @@ class CrawlerScheduler:
             self._close_connection()
             
     
+    def cleanup_after_daily_crawls(self):
+        """
+        Clean up database by removing jobs that were processed and notified.
+        This should be called after the daily email report is sent.
+        """
+        
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
+            ### Get count of jobs to be deleted
+            cursor.execute("SELECT COUNT(*) FROM removed_jobs WHERE notified = 1")
+            count = cursor.fetchone()[0]
+            
+            if count > 0:
+                ### First identfy job_ids that need to be deleted from crawl_results
+                cursor.execute("SELECT job_id FROM removed_jobs WHERE notified = 1")
+                job_ids = [row[0] for row in cursor.fetchall()]
+                
+                ### Delete from crawl_results
+                deletion_count = 0
+                for job_id in job_ids:
+                    cursor.execute("DELETE FROM crawl_results WHERE id = ?", (job_id,))
+                    deletion_count += cursor.rowcount
+                    
+                ### Then delete from removed_jobs
+                cursor.execute("DELETE FROM removed_jobs WHERE notified = 1")
+                removed_count = cursor.rowcount
+                
+                conn.commit()
+                logger.info(f"Database cleanup: Deleted {deletion_count} jobs from crawl_results and {removed_count} from removed_jobs")
+
+            else:
+                logger.info("No jobs to delete from removed_jobs")
+        
+        except Exception as e:
+            logger.error(f"Error during database cleanup: {e}")
+        finally:
+            if 'conn' in locals():
+                conn.close()
+                
                 
     def __del__(self):
         """Clean up resources when the schedluar is stopped"""

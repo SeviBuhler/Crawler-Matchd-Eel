@@ -8,4 +8,5 @@ CrawlerEnv313/
 crawls.db
 env_utils.py
 *.log
-
+testScript.py
+.env

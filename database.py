@@ -15,6 +15,14 @@ class Database:
         self.db_file = get_db_path()
         self.ensure_db_directory()
         
+    def _get_connection(self):
+        """Private method to create a database connection"""
+        return sqlite3.connect(self.db_file)
+        
+    def get_connection(self):
+        """Public method to get a database connection"""
+        return self._get_connection()
+        
     def ensure_db_directory(self):
         """Ensure the database directory exists"""
         try:
@@ -92,11 +100,31 @@ class Database:
         CREATE TABLE IF NOT EXISTS crawl_results (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             crawl_id INTEGER,
+            crawl_url TEXT,
             title TEXT,
             company TEXT,
             location TEXT,
             link TEXT,
             crawl_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+            last_seen DATETIME DEFAULT CURRENT_TIMESTAMP,
+            is_active BOOLEAN DEFAULT 1,
+            FOREIGN KEY (crawl_id) REFERENCES crawls (id)
+        )
+        ''')
+        
+        ### Create removed_jobs table
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS removed_jobs (
+            id INTEGER PRIMARY KEY,
+            job_id INTEGER,
+            crawl_id INTEGER,
+            title TEXT,
+            company TEXT,
+            location TEXT,
+            link TEXT,
+            removal_date DATETIME,
+            notified BOOLEAN DEFAULT 0,
+            FOREIGN KEY (job_id) REFERENCES crawl_results (id) ON DELETE SET NULL,
             FOREIGN KEY (crawl_id) REFERENCES crawls (id)
         )
         ''')

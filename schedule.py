@@ -355,7 +355,7 @@ class CrawlerScheduler:
                             cursor.execute('''
                                 INSERT INTO crawl_results 
                                 (crawl_id, crawl_url, title, company, location, link, crawl_date, last_seen, is_active)
-                                VALUES (?, ?, ?, ?, ?, ?, ?, 1)
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
                             ''', (
                                 crawl_id,
                                 base_url,
@@ -364,7 +364,8 @@ class CrawlerScheduler:
                                 result.get('location', 'Not specified'),
                                 result['link'],
                                 current_date,
-                                current_date
+                                current_date,
+                                
                             ))
                             new_jobs += 1
                 
@@ -392,7 +393,6 @@ class CrawlerScheduler:
                             VALUES (?, ?, ?, ?, ?, ?)
                         ''', (
                             job['id'],
-                            crawl_id,
                             job['title'],
                             job['company'],
                             job['location'],

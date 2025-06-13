@@ -112,14 +112,14 @@ function createJobTrendsChart(trendsData) {
             labels: trendsData.dates,
             datasets: [
                 {
-                    label: 'Neue Jobs',
+                    label: 'Neue Stellen',
                     data: trendsData.new_jobs,
                     borderColor: 'rgb(75, 192, 192)',
                     backgroundColor: 'rgba(75, 192, 192, 0.2)',
                     tension: 0.1
                 },
                 {
-                    label: 'Entfernte Jobs',
+                    label: 'Entfernte Stellen',
                     data: trendsData.removed_jobs,
                     borderColor: 'rgb(255, 99, 132)',
                     backgroundColor: 'rgba(255, 99, 132, 0.2)',

@@ -37,7 +37,7 @@ class CrawlerGUI:
         self.eel_thread = None
         self.eel_started = False
         self.current_port = None
-        self.chrome_pid = None  ### Store the PID of the Chrome process
+        self.chrome_pid = None 
         self.is_shutting_down = False
         self.scheduler = None      
         

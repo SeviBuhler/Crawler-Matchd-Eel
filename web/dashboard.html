@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/dashboard.css">
     <link rel="icon" href="/img/image.ico" type="image/x-icon">
-    <script src="js/dashboard.js" defer></script>
+    <script src="js/dashboards.js" defer></script>
     <title>Job-Crawler Dashboard</title>
 </head>
 <body class="notranslate">
@@ -19,31 +19,31 @@
 
         <div class="dashboard-stats">
             <div class="stat-card">
-                <div class="stat-title">Aktive Jobs</div>
+                <div class="stat-title">Aktive Stellen</div>
                 <div class="stat-value" id="activeJobs">--</div>
             </div>
             <div class="stat-card">
-                <div class="stat-title">Neue Jobs heute</div>
+                <div class="stat-title">Neue Stellen heute</div>
                 <div class="stat-value" id="newJobsToday">--</div>
             </div>
             <div class="stat-card">
-                <div class="stat-title">Entfernte Jobs heute</div>
+                <div class="stat-title">Entfernte Stellen heute</div>
                 <div class="stat-value" id="removedJobsToday">--</div>
             </div>
             <div class="stat-card">
-                <div class="stat-title">Aktive Crawls</div>
+                <div class="stat-title">Geplante Crawls</div>
                 <div class="stat-value" id="activeCrawls">--</div>
             </div>
         </div>
 
         <div class="dashboard-tables">
             <div class="dashboard-table">
-                <h2>Jobs pro Website</h2>
+                <h2>Stellen pro Website</h2>
                 <table id="jobsTable">
                     <thead>
                         <tr>
                             <th>Website</th>
-                            <th>Jobs</th>
+                            <th>Stellen</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -70,7 +70,7 @@
         </div>
 
         <div class="dashboard-chart-container">
-            <h2>Job-Entwicklung (letzte 7 Tage)</h2>
+            <h2>Stellen-Entwicklung (letzte 7 Tage)</h2>
             <canvas id="jobTrendsChart"></canvas>
         </div>
     </div>

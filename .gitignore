@@ -3,6 +3,7 @@
 /build/
 __pycache__/
 CrawlerEnv313/
+/chrome_data/
 
 # files to ignore
 crawls.db

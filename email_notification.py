@@ -395,6 +395,8 @@ class EmailNotifier:
         except Exception as e:
             logger.error(f"Error sending daily report: {e}")
             
+    
+            
             
 ### Function to be called after all daily crawls are completed
 def send_daily_email_report(db_path='crawls.db'):

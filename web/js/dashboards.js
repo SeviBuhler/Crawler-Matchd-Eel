@@ -42,7 +42,7 @@ function updateDashboard(data) {
         });
     }
     
-    // Update recent crawls table
+    // Update critical crawls table
     const crawlsTable = document.getElementById('crawlsTable').getElementsByTagName('tbody')[0];
     crawlsTable.innerHTML = '';
     

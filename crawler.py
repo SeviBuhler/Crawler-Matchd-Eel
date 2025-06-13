@@ -135,7 +135,7 @@ class Crawler:
                     print(f"abraxas.ch: {'abraxas' in current_url}")
                     page_content, next_url = self.crawl_abraxas(current_url, keywords)
                 elif 'ohws.prospective.ch/public/v1/medium/1008005' in current_url:
-                    print(f"buhlergroup.com: {'buhlergroup' in current_url}")
+                    print(f"buhlergroup.com: {'prospective' in current_url}")
                     page_content, next_url = self.crawl_buehler(current_url, keywords)
                 elif 'jobs.dualoo.com/portal/lx0anfq4?lang=DE' in current_url:
                     print(f"egeli-informatik.ch: {'egeli' in current_url}")
@@ -1651,7 +1651,7 @@ class Crawler:
                     title = job.get('title', '')
                     link = job.get('link', '')
                     
-                    print(f"Extracted job: Title={title}, Location=Uzwil")
+                    print(f"Extracted job: Title = {title}, Location = Uzwil")
                     
                     ### Check if any keyword is in the title and location is in Ostschweiz
                     if any(keyword.lower() in title.lower() for keyword in keywords) and self.is_it_job(title):

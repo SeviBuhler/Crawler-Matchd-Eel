@@ -170,6 +170,46 @@ class Database:
         ''')
         
     
+    def update_database_schema(self):
+        """Update database schema to latest version"""
+        conn = sqlite3.connect(self.db_file)
+        cursor = conn.cursor()
+
+        try:
+            # Prüfen ob failed_crawls Tabelle existiert
+            cursor.execute("""
+                SELECT name FROM sqlite_master 
+                WHERE type='table' AND name='failed_crawls'
+            """)
+
+            if not cursor.fetchone():
+                logger.info("Creating missing failed_crawls table...")
+                cursor.execute('''
+                CREATE TABLE IF NOT EXISTS failed_crawls (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    crawl_id INTEGER,
+                    crawl_url TEXT,
+                    error_message TEXT,
+                    error_type TEXT,
+                    failure_date DATETIME,
+                    traceback TEXT,
+                    notified BOOLEAN DEFAULT 0,
+                    FOREIGN KEY (crawl_id) REFERENCES crawls(id)
+                )
+                ''')
+                logger.info("✅ failed_crawls table created successfully")
+      
+
+            conn.commit()
+
+        except Exception as e:
+            logger.error(f"Error updating database schema: {e}")
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
+
+    
     def populate_localities(self, cursor):
         """Populate the localities initial with data"""
         try:
@@ -475,15 +515,19 @@ class Database:
             """)
             stats['jobs_per_website'] = cursor.fetchall()
 
-            # Recent crawls
+            # Failed crawls
             cursor.execute("""
-                SELECT c.title, MAX(cr.crawl_date) as last_crawl,
-                       (SELECT 1 FROM crawl_results WHERE crawl_id = c.id LIMIT 1) as success
+                SELECT c.title, 
+                       COALESCE(MAX(fc.failure_date), 'Never') as last_activity,
+                       CASE 
+                           WHEN fc.id IS NOT NULL THEN 0  -- Hat Eintrag in failed_crawls → Fehlgeschlagen
+                           ELSE 1  -- Kein Eintrag in failed_crawls → Erfolgreich
+                       END as success
                 FROM crawls c
-                LEFT JOIN crawl_results cr ON c.id = cr.crawl_id
-                GROUP BY c.title
-                ORDER BY last_crawl DESC
-                LIMIT 10
+                LEFT JOIN failed_crawls fc ON c.id = fc.crawl_id
+                GROUP BY c.id, c.title
+                ORDER BY last_activity DESC
+                LIMIT 20
             """)
             stats['recent_crawls'] = cursor.fetchall()
 

@@ -396,6 +396,58 @@ class EmailNotifier:
             logger.error(f"Error sending daily report: {e}")
             
     
+def send_failure_email(subject, message):
+    """Send email notification for failed crawls"""
+    try:
+        notifier = EmailNotifier()
+        developer_emails = [
+            "severin.buehler@3summit.ch",
+            "christian.meier@3summit.ch",
+        ]
+        if not developer_emails:
+            logger.warning("No recipients found for failure notification")
+            return
+         
+        ### Create message
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = subject
+        msg['From'] = notifier.smtp_username if notifier.smtp_username else 'yourCrawler@bhm.com'
+        msg['To'] = ', '.join(developer_emails)
+        ### Create HTML content
+        html_content = f"""
+        <html>
+        <head>
+            <style>
+                body {{ font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }}
+                .error {{ background: #fff5f5; border-left: 4px solid #e53e3e; padding: 15px; margin: 20px 0; }}
+                .title {{ font-weight: bold; color: #e53e3e; font-size: 18px; margin-bottom: 10px; }}
+                .details {{ color: #4a5568; margin: 8px 0; }}
+                .traceback {{ background: #f7fafc; border: 1px solid #e2e8f0; padding: 10px; font-family: monospace; font-size: 12px; }}
+            </style>
+        </head>
+        <body>
+            <div class="error">
+                <div class="title">🚨 Crawl Failure Alert</div>
+                <div class="details">{message}</div>
+            </div>
+        </body>
+        </html>
+        """
+        msg.attach(MIMEText(html_content, 'html'))
+        ### Send email
+        with smtplib.SMTP(notifier.smtp_server, notifier.smtp_port) as server:
+            server.starttls()
+            if notifier.smtp_username and notifier.smtp_password:
+                server.login(notifier.smtp_username, notifier.smtp_password)
+            else:
+                logger.error("SMTP username or password is not set.")
+                return
+            server.send_message(msg)
+        logger.info(f"Failure notification sent to {len(developer_emails)} recipients")
+    except Exception as e:
+        logger.error(f"Error sending failure notification: {e}")
+            
+    
             
             
 ### Function to be called after all daily crawls are completed

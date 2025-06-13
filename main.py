@@ -68,6 +68,8 @@ def setup_application():
         db = Database()
         if not os.path.exists(db.db_file):
             db.initialize_database()
+        else:
+            db.update_database_schema()
         
         # Create crawler instance
         crawler = Crawler(db.db_file)

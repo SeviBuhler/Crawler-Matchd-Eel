@@ -159,8 +159,8 @@ class CrawlerGUI:
                         'cmdline_args': [
                             '--disable-http-cache',
                             '--user-data-dir=' + os.path.join(APP_DIR, 'chrome_data'),
-                            '--new-window',  ### Force new window
-                            '--disable-features=PromptOnExit' ### Disable exit prompt
+                            '--new-window', 
+                            '--disable-features=PromptOnExit'
                         ]
                     }
 

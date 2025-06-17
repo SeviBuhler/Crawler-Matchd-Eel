@@ -4,6 +4,7 @@
 __pycache__/
 CrawlerEnv313/
 /chrome_data/
+/Tests
 
 # files to ignore
 crawls.db

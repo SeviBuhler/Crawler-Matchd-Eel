@@ -43,22 +43,26 @@ class Database:
         
     def initialize_database(self):
         """Initialize the database with tables and populate localities"""
-        print(f"Initializing database at {self.db_file}")
-        db_exists = os.path.exists(self.db_file)
-        conn =sqlite3.connect(self.db_file)
-        cursor = conn.cursor()
-        
         try:
-            ### Create tables
+            print(f"Initializing database at {self.db_file}")
+            conn =sqlite3.connect(self.db_file)
+            cursor = conn.cursor()
+            
             self.create_tables(cursor)
-            ### If this is a new database, popiulate localities
-            if not db_exists:
+            cursor.execute("SELECT COUNT(*) FROM localities")
+            locals_count = cursor.fetchone()[0]
+            
+            if locals_count == 0:
+                logger.info("Localities table is empty, populating with initial data")
                 self.populate_localities(cursor)
+            else:
+                logger.info("Localities table already populated, skipping population")
+            
             conn.commit()
             logger.info("Database initialized successfully")
+    
         except Exception as e:
             logger.error(f"Error initializing database: {e}")
-            conn.rollback()
             raise
         finally:
             conn.close()
@@ -108,8 +112,6 @@ class Database:
             location TEXT,
             link TEXT,
             crawl_date DATETIME DEFAULT CURRENT_TIMESTAMP,
-            last_seen DATETIME DEFAULT CURRENT_TIMESTAMP,
-            is_active BOOLEAN DEFAULT 1,
             FOREIGN KEY (crawl_id) REFERENCES crawls (id)
         )
         ''')
@@ -168,46 +170,6 @@ class Database:
             FOREIGN KEY (crawl_id) REFERENCES crawls(id)
         )
         ''')
-        
-    
-    def update_database_schema(self):
-        """Update database schema to latest version"""
-        conn = sqlite3.connect(self.db_file)
-        cursor = conn.cursor()
-
-        try:
-            # Prüfen ob failed_crawls Tabelle existiert
-            cursor.execute("""
-                SELECT name FROM sqlite_master 
-                WHERE type='table' AND name='failed_crawls'
-            """)
-
-            if not cursor.fetchone():
-                logger.info("Creating missing failed_crawls table...")
-                cursor.execute('''
-                CREATE TABLE IF NOT EXISTS failed_crawls (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    crawl_id INTEGER,
-                    crawl_url TEXT,
-                    error_message TEXT,
-                    error_type TEXT,
-                    failure_date DATETIME,
-                    traceback TEXT,
-                    notified BOOLEAN DEFAULT 0,
-                    FOREIGN KEY (crawl_id) REFERENCES crawls(id)
-                )
-                ''')
-                logger.info("✅ failed_crawls table created successfully")
-      
-
-            conn.commit()
-
-        except Exception as e:
-            logger.error(f"Error updating database schema: {e}")
-            conn.rollback()
-            raise
-        finally:
-            conn.close()
 
     
     def populate_localities(self, cursor):
@@ -488,7 +450,7 @@ class Database:
             today = datetime.now().strftime('%Y-%m-%d')
 
             # Active jobs count
-            cursor.execute("SELECT COUNT(*) FROM crawl_results WHERE is_active = 1")
+            cursor.execute("SELECT COUNT(*) FROM crawl_results")
             stats['active_jobs'] = cursor.fetchone()[0]
 
             # New jobs today
@@ -505,11 +467,9 @@ class Database:
 
             # Jobs per website
             cursor.execute("""
-                SELECT c.title, COUNT(cr.id) 
+                SELECT cr.crawl_url, COUNT(cr.id) 
                 FROM crawl_results cr
-                JOIN crawls c ON cr.crawl_id = c.id
-                WHERE cr.is_active = 1
-                GROUP BY c.title
+                GROUP BY cr.crawl_url
                 ORDER BY COUNT(cr.id) DESC
                 LIMIT 10
             """)
@@ -536,16 +496,17 @@ class Database:
             new_jobs = []
             removed_jobs = []
 
-            for i in range(6, -1, -1):
-                date = (datetime.now() - timedelta(days=i)).strftime('%Y-%m-%d')
-                dates.append(date)
+            for i in range(29, -1, -1):
+                date = (datetime.now() - timedelta(days=i))
+                date_str = date.strftime('%Y-%m-%d')
+                dates.append(date.strftime('%d.%m'))
 
                 # New jobs for this date
-                cursor.execute("SELECT COUNT(*) FROM crawl_results WHERE DATE(crawl_date) = ?", (date,))
+                cursor.execute("SELECT COUNT(*) FROM crawl_results WHERE DATE(crawl_date) = ?", (date_str,))
                 new_jobs.append(cursor.fetchone()[0])
 
                 # Removed jobs for this date
-                cursor.execute("SELECT COUNT(*) FROM removed_jobs WHERE DATE(removal_date) = ?", (date,))
+                cursor.execute("SELECT COUNT(*) FROM removed_jobs WHERE DATE(removal_date) = ?", (date_str,))
                 removed_jobs.append(cursor.fetchone()[0])
 
             stats['job_trends'] = {

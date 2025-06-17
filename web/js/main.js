@@ -641,6 +641,21 @@ async function manageEmails(){
             });
         }
 
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                closePopup();
+            }
+        })
+
+        const handleEscapeKey = (e) => {
+            if (e.key === 'Escape') {
+                closePopup();
+                document.removeEventListener('keydown', handleEscapeKey);
+            }
+        };
+
+        document.addEventListener('keydown', handleEscapeKey);
+
     } catch (error) {
         console.error('Error loading emails:', error);
         showAlert('Fehler beim Laden der Email-Adressen: ' + error);
@@ -761,57 +776,79 @@ function confirmDeleteEmail(emailId) {
 
 
 function showSettings() {
+    if (window.currentPopup) {
+        closePopup();
+    }
+
     const settingsModal = document.createElement("div");
     settingsModal.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        z-index: 1000;
+        width: 400px;
+        max-height: 90vh;
+        overflow-y: auto;
+    `;
+    
+    settingsModal.innerHTML = `
+        <h3>Einstellungen</h3>
+        <div class="settings-section">
+            <div class="setting-item">
+                <label class="setting-label">Crawler mit Windows starten</label>
+                <div class="toggle-switch">
+                    <input type="checkbox" id="startupToggle" onchange="toggleStartup()">
+                    <label for="startupToggle"></label>
+                </div>
+            </div>
+        </div>
+
+        <div class="settings-section">
+            <h4>Email-Benachrichtigungen</h4>
+            <div class="setting-item">
+                <label class="setting-label">Tägliche E-Mail senden um:</label>
+                <input type="time" id="emailTimeInput" class="time-input">
+            </div>
+            <div class="settings-item">
+                <button id="manageEmailsButton" onclick="manageEmails()" style="width: 100%;">
+                    E-Mail-Empfänger verwalten
+                </button>
+            </div>
+        </div>
+
+        <div style="text-align: right; margin-top: 15px;">
+            <button onclick="closePopup()" style="background: #6c757d;">Schließen</button>
+        </div>
+    `;
+
+    const overlay = document.createElement("div");
+    overlay.style.cssText = `
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
         background: rgba(0,0,0,0.5);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 2000;
+        z-index: 999;
     `;
-    
-    settingsModal.innerHTML = `
-        <div class="settings-modal">
-            <h3>Einstellungen</h3>
-            <div class="settings-section">
-                <div class="setting-item">
-                    <label class="setting-label">Crawler mit Windows starten</label>
-                    <div class="toggle-switch">
-                        <input type="checkbox" id="startupToggle" onchange="toggleStartup()">
-                        <label for="startupToggle"></label>
-                    </div>
-                </div>
-            </div>
 
-            <div class="settings-section">
-                <h4>Email-Benachrichtigungen</h4>
-                <div class="setting-item">
-                    <label class="setting-label">Tägliche E-Mail senden um:</label>
-                    <input type="time" id="emailTimeInput" class="time-input">
-                </div>
-                <div class="settings-item">
-                    <button id="manageEmailsButton" onclick="manageEmails()" style="width: 100%;">
-                        E-Mail-Empfänger verwalten
-                    </button>
-                </div>
-            </div>
-
-            <div style="text-align: right; margin-top: 15px;">
-                <button id='settingsCloseButton' style="background: #6c757d;">Schließen</button>
-            </div>
-        </div>
-    `;
-    
+    document.body.appendChild(overlay);
     document.body.appendChild(settingsModal);
-    checkStartupStatus(); // Check the current status when showing the modal
-    loadEmailSettings(); // Load the current email settings
+
+    // Set global references für closePopup()
+    window.currentPopup = settingsModal;
+    window.currentOverlay = overlay;
+
+    // Initialize settings
+    checkStartupStatus(); 
+    loadEmailSettings();
     
-    // Add keypress eventlistener for the time input
+    // Add keypress event listener for the time input
     setTimeout(() => {
         const emailTimeInput = document.getElementById('emailTimeInput');
         if (emailTimeInput) {
@@ -824,25 +861,42 @@ function showSettings() {
         }
     }, 100);
 
-    // Close-button functionality
-    document.getElementById('settingsCloseButton').addEventListener('click', function() {
-            const emailTimeInput = document.getElementById('emailTimeInput');
-            if (emailTimeInput && emailTimeInput.value) {
-                saveEmailTime(emailTimeInput.value);
-            }
-            settingsModal.remove();
-    });
-
-    // Clsoe modal when clicking outside
-    settingsModal.addEventListener('click', (event) => {
-        if (event.target === settingsModal) {
-            const emailTimeInput = document.getElementById('emailTimeInput');
-            if (emailTimeInput && emailTimeInput.value) {
-                saveEmailTime(emailTimeInput.value);
-            }
-            settingsModal.remove();
+    // Event-Listener für Klick außerhalb des Modals
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+            saveEmailTimeBeforeClose();
+            closePopup();
         }
     });
+
+    // Event-Listener für ESC-Taste
+    const handleEscapeKey = (e) => {
+        if (e.key === 'Escape') {
+            saveEmailTimeBeforeClose();
+            closePopup();
+            document.removeEventListener('keydown', handleEscapeKey);
+        }
+    };
+    
+    document.addEventListener('keydown', handleEscapeKey);
+
+    // Erweiterte closePopup function für Settings
+    const originalClosePopup = window.closePopup;
+    window.closePopup = function() {
+        saveEmailTimeBeforeClose();
+        document.removeEventListener('keydown', handleEscapeKey);
+        originalClosePopup();
+        // Reset to original closePopup
+        window.closePopup = originalClosePopup;
+    };
+}
+
+// Helper function to save email time before closing
+function saveEmailTimeBeforeClose() {
+    const emailTimeInput = document.getElementById('emailTimeInput');
+    if (emailTimeInput && emailTimeInput.value) {
+        saveEmailTime(emailTimeInput.value);
+    }
 }
 
 

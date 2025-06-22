@@ -6,7 +6,6 @@ from database_config import get_db_path
 from datetime import datetime, timedelta
 
 
-
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

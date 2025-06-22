@@ -33,6 +33,40 @@ if not os.path.exists(web_dir):
     raise Exception(f"Web directory not found: {web_dir}")
 datas.append(('web', 'web'))
 
+# ✅ REPLACE: Die automatische Collection durch manuelle ersetzen
+try:
+    # Versuche zuerst automatische Collection
+    crawler_submodules = collect_submodules('crawler')
+    if len(crawler_submodules) > 0:
+        hiddenimports.extend(crawler_submodules)
+        print(f"✅ Auto-collected {len(crawler_submodules)} crawler modules")
+    else:
+        raise Exception("Auto-collection returned 0 modules")
+        
+except Exception as e:
+    print(f"⚠️  Auto-collection failed: {e}")
+    print("📝 Using manual module collection...")
+    
+    # ✅ MANUAL: Alle Module explizit sammeln
+    manual_modules = [
+        'crawler',
+        'crawler.base_crawler',
+        'crawler.url_mapping',
+        'crawler.crawlMethods',
+    ]
+    
+    # ✅ Alle .py Files in crawlMethods/ hinzufügen
+    crawl_methods_dir = os.path.join(current_dir, 'crawler', 'crawlMethods')
+    if os.path.exists(crawl_methods_dir):
+        for file in os.listdir(crawl_methods_dir):
+            if file.endswith('.py') and file != '__init__.py':
+                module_name = f'crawler.crawlMethods.{file[:-3]}'
+                manual_modules.append(module_name)
+                print(f"  Adding: {module_name}")
+    
+    hiddenimports.extend(manual_modules)
+    print(f"✅ Manual collection: {len(manual_modules)} modules")
+
 ### Only inclued files that exists
 def add_if_exists(filename, target="."):
     filepath = os.path.join(current_dir, filename)
@@ -45,12 +79,10 @@ def add_if_exists(filename, target="."):
 resource_files = [
     'image.ico',
     'localities_data.py',
-    'crawler.py',
     'database.py',
     'email_notification.py',
     'gui.py',
     'schedule.py',
-    'service.py',
     'startup_utils.py',
     'version_info_file.txt',
     '.env',
@@ -150,7 +182,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='image.ico',  # Path to your icon file
+    icon='image.ico', 
     version='version_info_file.txt'
 )
 

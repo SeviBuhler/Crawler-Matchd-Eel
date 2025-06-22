@@ -11,16 +11,16 @@ def get_current_version():
         
         # If version file doesn't exist, create it with initial version
         if not os.path.exists(VERSION_FILE):
-            set_current_version("0.1.5")  # Initial version
+            set_current_version("1.0.0")
         
         # Read version from file
         with open(VERSION_FILE, 'r') as f:
             version_data = json.load(f)
-        return version_data.get('version', "0.1.5")
+        return version_data.get('version', "1.0.0")
     
     except Exception as e:
         print(f"Error reading version: {e}")
-        return "0.1.5"  # Fallback version
+        return "1.0.0"  # Fallback version
 
 def set_current_version(new_version):
     """Update the current version"""

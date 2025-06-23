@@ -4735,7 +4735,7 @@ class Crawler:
                     
                     ### check if any keyword is in the title, location is in Ostschweiz and is an IT job
                     if any(keyword.lower() in title.lower() for keyword in keywords) and self.is_location_in_ostschweiz(location) and self.is_it_job(title):
-                       content.append({
+                        content.append({
                             'title': title,
                             'link': link,
                             'location': location,
@@ -4835,7 +4835,7 @@ class Crawler:
             return content, next_page               
 
      
-  def crawl_kellenberger(self, url, keywords):
+    def crawl_kellenberger(self, url, keywords):
         """Function to crawl Kellenberger"""    
         print(f"Crawling Kellenberger URL: {url}")
         

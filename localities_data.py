@@ -1168,4 +1168,5 @@ LOCALITIES_DATA = [
     ("Triesen", "li"),
     ("Balzers", "li"),
     ("Rheintal", "SG"),
+    ("anywhere", ""),
 ]

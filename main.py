@@ -66,10 +66,7 @@ def setup_application():
     try:
         ### Create and initalize database
         db = Database()
-        if not os.path.exists(db.db_file):
-            db.initialize_database()
-        else:
-            db.update_database_schema()
+        db.initialize_database()
         
         # Create crawler instance
         crawler = Crawler(db.db_file)

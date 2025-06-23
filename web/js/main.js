@@ -1007,6 +1007,7 @@ function updateStartupToggle(enabled) {
 
 // Call this when the page loads
 document.addEventListener('DOMContentLoaded', () => {
+    updateViewportVariables(); 
     loadCrawls();
     setupKeywordAutocomplete();
 
@@ -1014,14 +1015,103 @@ document.addEventListener('DOMContentLoaded', () => {
     const originalAddNewScheduledSite = addNewScheduledSite;
     window.addNewScheduledSite = function() {
         originalAddNewScheduledSite();
-        setTimeout(setupKeywordAutocomplete, 100); // Delay to ensure the popup is fully loaded
+        setTimeout(setupKeywordAutocomplete, 100); 
     };
 
     const originalEditCrawl = editCrawl;
     window.editCrawl = function(crawlID) {
         originalEditCrawl(crawlID);
-        setTimeout(setupKeywordAutocomplete, 100); // Delay to ensure the popup is fully loaded
+        setTimeout(setupKeywordAutocomplete, 100);
     }
 });
 
+function detectScreenType(viewportWidth, viewportHeight) {
+    let screenType = 'desktop';
     
+    if (viewportWidth <= 1280) {
+        screenType = 'small-desktop';
+    } else if (viewportWidth <= 1440) {
+        screenType = 'standard-desktop';
+    } else if (viewportWidth <= 1920) {
+        screenType = 'large-desktop';
+    } else {
+        screenType = 'ultra-desktop';
+    }
+    
+    // CSS Klassen setzen für Responsive Design
+    document.body.className = document.body.className.replace(/screen-\w+/g, '');
+    document.body.classList.add(`screen-${screenType}`);
+    
+    // CSS Properties setzen
+    updateScreenSpecificProperties(screenType, viewportWidth, viewportHeight);
+}
+
+function updateViewportVariables() {
+    const vh = window.innerHeight * 0.01;
+    const vw = window.innerWidth * 0.01;
+    const viewportWidth = window.innerWidth;  
+    const viewportHeight = window.innerHeight; 
+    const screenWidth = window.screen.width;   
+    const screenHeight = window.screen.height;
+    
+    // CSS Custom Properties updaten
+    document.documentElement.style.setProperty('--vh', `${vh}px`);
+    document.documentElement.style.setProperty('--vw', `${vw}px`);
+    document.documentElement.style.setProperty('--screen-width', `${screenWidth}px`);
+    document.documentElement.style.setProperty('--screen-height', `${screenHeight}px`);
+    
+    // Screen-Type Detection
+    detectScreenType(viewportWidth, viewportHeight);
+}
+
+// ✅ Erweiterte updateScreenSpecificProperties
+function updateScreenSpecificProperties(screenType, viewportWidth, viewportHeight) {
+    const root = document.documentElement;
+    
+    // ✅ Anpassungen basierend auf Viewport-Größe
+    switch(screenType) {
+        case 'small-desktop': 
+            root.style.setProperty('--container-padding-multiplier', '1.5');
+            root.style.setProperty('--font-scale', '0.9');
+            root.style.setProperty('--modal-scale', '0.8');
+            break;
+        case 'standard-desktop': 
+            root.style.setProperty('--container-padding-multiplier', '2');
+            root.style.setProperty('--font-scale', '1');
+            root.style.setProperty('--modal-scale', '1');
+            break;
+        case 'large-desktop': 
+            root.style.setProperty('--container-padding-multiplier', '2.5');
+            root.style.setProperty('--font-scale', '1.1');
+            root.style.setProperty('--modal-scale', '1.2');
+            break;
+        case 'ultra-desktop': 
+            root.style.setProperty('--container-padding-multiplier', '3');
+            root.style.setProperty('--font-scale', '1.2');
+            root.style.setProperty('--modal-scale', '1.3');
+            break;
+    }
+    
+    root.style.setProperty('--viewport-width', `${viewportWidth}px`);
+    root.style.setProperty('--viewport-height', `${viewportHeight}px`);
+}
+
+// Performance-optimierte Resize-Handler
+let resizeTimeout;
+function handleResize() {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+        updateViewportVariables();
+    }, 100); // Debounce für bessere Performance
+}
+
+// ✅ Event Listeners hinzufügen
+window.addEventListener('resize', handleResize);
+window.addEventListener('orientationchange', () => {
+    setTimeout(updateViewportVariables, 100);
+});
+
+// ✅ Window Focus Event für Multi-Monitor Setups
+window.addEventListener('focus', () => {
+    setTimeout(updateViewportVariables, 50);
+});

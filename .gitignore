@@ -11,3 +11,4 @@ env_utils.py
 *.log
 testScript.py
 .env
+crawls_data.py

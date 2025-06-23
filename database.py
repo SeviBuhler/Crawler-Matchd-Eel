@@ -1,6 +1,7 @@
 import sqlite3
 import logging
 import os
+from crawls_data import CRAWLS_DATA
 from localities_data import LOCALITIES_DATA
 from database_config import get_db_path
 from datetime import datetime, timedelta
@@ -47,6 +48,7 @@ class Database:
             conn =sqlite3.connect(self.db_file)
             cursor = conn.cursor()
             
+            ### Check if the localities table exists and is empty
             self.create_tables(cursor)
             cursor.execute("SELECT COUNT(*) FROM localities")
             locals_count = cursor.fetchone()[0]
@@ -56,6 +58,19 @@ class Database:
                 self.populate_localities(cursor)
             else:
                 logger.info("Localities table already populated, skipping population")
+                
+            ### Check if crawls table exists and is empty
+            cursor.execute("SELECT COUNT(*) FROM crawls")
+            crawls_count = cursor.fetchone()[0]
+            
+            if crawls_count == 0:
+                logger.info("Crawls table is empty, populating with initial data")
+                self.populate_crawls(cursor)
+            else:
+                logger.info("Crawls table already populated, skipping population")
+            
+            conn.commit()
+            logger.info("Database initialized successfully")
             
             conn.commit()
             logger.info("Database initialized successfully")
@@ -189,6 +204,43 @@ class Database:
                 logger.info('Localities table already populated')
         except Exception as e:
             logger.error(f"Error populating localities: {e}")
+            raise
+        
+    
+    def populate_crawls(self, cursor):
+        """Populate the crawls table with initial data"""
+        try:
+            # First check if the crawls table is empty
+            cursor.execute('SELECT COUNT(*) FROM crawls')
+            count = cursor.fetchone()[0]
+            
+            if count == 0:
+                logger.info('Populating crawls table...')
+                
+                for crawl_data in CRAWLS_DATA:
+                    title, url, schedule_time, schedule_day, keywords = crawl_data
+                    
+                    # Insert crawl
+                    cursor.execute('''
+                        INSERT INTO crawls (title, url, scheduleTime, scheduleDay)
+                        VALUES (?, ?, ?, ?)
+                    ''', (title, url, schedule_time, schedule_day))
+                    
+                    crawl_id = cursor.lastrowid
+                    
+                    # Insert keywords for this crawl
+                    for keyword in keywords:
+                        cursor.execute('''
+                            INSERT INTO keywords (crawl_id, keyword)
+                            VALUES (?, ?)
+                        ''', (crawl_id, keyword))
+                
+                logger.info(f"Successfully populated crawls table with {len(CRAWLS_DATA)} crawls")
+            else:
+                logger.info('Crawls table already populated')
+                
+        except Exception as e:
+            logger.error(f"Error populating crawls: {e}")
             raise
     
     

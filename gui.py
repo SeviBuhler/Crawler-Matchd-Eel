@@ -37,12 +37,12 @@ class CrawlerGUI:
         self.eel_thread = None
         self.eel_started = False
         self.current_port = None
-        self.chrome_pid = None  ### Store the PID of the Chrome process
+        self.chrome_pid = None 
         self.is_shutting_down = False
         self.scheduler = None      
         
         ### Ensure the icon exists before starting the tray
-        self.icon_path = os.path.join(self.base_path, 'image.ico')
+        self.icon_path = os.path.join(str(self.base_path), 'image.ico')
         if not os.path.exists(self.icon_path):
             logger.error(f"Icon not found: {self.icon_path}")
             raise FileNotFoundError(f"Icon not found: {self.icon_path}")

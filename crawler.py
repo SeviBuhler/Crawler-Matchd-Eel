@@ -134,8 +134,8 @@ class Crawler:
                 elif 'abraxas' in current_url:
                     print(f"abraxas.ch: {'abraxas' in current_url}")
                     page_content, next_url = self.crawl_abraxas(current_url, keywords)
-                elif 'buhlergroup' in current_url:
-                    print(f"buhlergroup.com: {'buhlergroup' in current_url}")
+                elif 'ohws.prospective.ch/public/v1/medium/1008005' in current_url:
+                    print(f"buhlergroup.com: {'prospective' in current_url}")
                     page_content, next_url = self.crawl_buehler(current_url, keywords)
                 elif 'jobs.dualoo.com/portal/lx0anfq4?lang=DE' in current_url:
                     print(f"egeli-informatik.ch: {'egeli' in current_url}")
@@ -287,6 +287,12 @@ class Crawler:
                 elif 'hostpoint.ch/jobs/' in current_url:
                     print(f"Hostpoint: {'careers.smartrecruiters.com/LiechtensteinischeLandesverwaltung' in current_url}")
                     page_content, next_url = self.crawl_hostpoint(current_url, keywords) 
+                elif 'management.ostjob.ch/minisite/62' in current_url:
+                    print(f"Kellenberger: {'kellenberger.com/de/stellenanzeigen' in current_url}")
+                    page_content, next_url = self.crawl_kellenberger(current_url, keywords)
+                elif 'jobs.dualoo.com/portal/elj8aw7v?lang=DE' in current_url:
+                    print(f"Laveba Genossenschaft: {'jobs.dualoo.com/portal/elj8aw7v?lang=DE' in current_url}")
+                    page_content, next_url = self.crawl_laveba(current_url, keywords)
                 else:
                     print(f"Unknown URL: {current_url}")
                     return
@@ -1047,7 +1053,8 @@ class Crawler:
     def crawl_digitalliechtenstein(self, url, keywords):
         """Crawl function for digitalliechtenstein.ch"""
         print(f"Crawling digitalliechtenstein URL: {url}")
-        try:            
+        try:
+            time.sleep(2)            
             response = requests.get(url, headers=self.headers, timeout=10)
             soup = BeautifulSoup(response.content, 'html.parser')
             
@@ -1648,17 +1655,14 @@ class Crawler:
         print(f"Crawling Buehler URL: {url}")
         
         try:
-            response = requests.get(url, headers=self.headers, timeout=10)
+            response = requests.get(url, headers=self.api_headers, timeout=10)
             response.raise_for_status()
-            print(f"Initial response status: {response.status_code}")
             
-            soup = BeautifulSoup(response.content, 'html.parser')
-            print(soup.prettify()[:500])
+            ### Parse the json response
+            data = response.json()
+           
             
-            job_rows = soup.find_all(lambda tag: tag.name == 'li' and 
-                                                tag.has_attr('class') and
-                                                'job-tile' in ' '.join(tag.get('class', [])) and
-                                                'job-id' in ' '.join(tag.get('class', [])))
+            job_rows = data.get('jobs', [])
             
             print(f"Found {len(job_rows)} job listings")
             
@@ -1666,70 +1670,18 @@ class Crawler:
             for job in job_rows:
                 try:
                     ### Extract job details
+                    title = job.get('title', '')
+                    link = job.get('link', '')
                     
-                    title_element = (
-                        job.find('a', class_=lambda c: c and 'jobTitle-lin' in c) or
-                        job.find('a', class_=lambda c: c and 'job-title' in c) or
-                        job.find('a', href=lambda h: h and '/job/' in h) or
-                        job.find('a')                        
-                    )
-                    
-                    if title_element:
-                        title = title_element.get_text(strip=True)
-                        
-                        if title_element.name == 'a' and title_element.has_attr('href'):
-                            link = title_element['href']
-
-                            if not (link.startswith('http://') or link.startswith('https://')):
-                                link = urllib.parse.urljoin('https://jobs.buhlergroup.com/', link)
-                        else:
-                            ### if title element is not a link, look for a link nearby
-                            link_element = job.find('a')
-                            if link_element and link_element.has_attr('href'):
-                                link = link_element['href']
-                                ### Make sure link is absolute
-                                if not (link.startswith('http://') or link.startswith('https://')):
-                                    link = urllib.parse.urljoin('https://jobs.buhlergroup.com/', link)
-                            
-                            else:
-                                link = url ### if no link found, use the current URL
-                        
-                    ### try different ways to get locations
-                    location_element = (
-                        job.find('div', class_=lambda c: c and 'location' in c.lower()) or
-                        job.find(string=lambda s: s and any(loc in s.lower() for loc in ['uzwil', 'st. gallen', 'st.gallen', 'wil', 'gossau']))
-                    )
-                    
-                    if location_element:
-                        if hasattr(location_element, 'text'):
-                            location = location_element.get_text(strip=True)
-                        else:
-                            ### if the locatoin directly was found as string
-                            location = str(location_element).strip()
-                    else:
-                        # If location not found in expected ways, try searching in all text of job element
-                        job_text = job.get_text().lower()
-                        for loc in ['uzwil', 'st. gallen', 'st.gallen', 'wil', 'gossau', 'appenzell']:
-                            if loc in job_text:
-                                location = loc.title()
-                                break
-                        else:
-                            location = 'unknown'
-                            
-                    if location.startswith('Location'):
-                        location = location[8:].strip()
-                                            
-                    company = 'Bühler'
-                    
-                    print(f"Extracted job: Title={title}, Location={location}")
+                    print(f"Extracted job: Title = {title}, Location = Uzwil")
                     
                     ### Check if any keyword is in the title and location is in Ostschweiz
-                    if any(keyword.lower() in title.lower() for keyword in keywords) and self.is_location_in_ostschweiz(location) and self.is_it_job(title):
+                    if any(keyword.lower() in title.lower() for keyword in keywords) and self.is_it_job(title):
                         content.append({
                             'title': title,
                             'link': link,
-                            'company': company,
-                            'location': location
+                            'company': "Buehler Group",
+                            'location': "Uzwil"
                         })
                         print(f"Found matching job: {title}")
                     else:
@@ -1758,14 +1710,9 @@ class Crawler:
             soup = BeautifulSoup(response.content, 'html.parser')
             print(soup.prettify()[:500])
             
-            #job_rows = soup.find_all(lambda tag: tag.name == 'a' and 
-            #                                    tag.has_attr('class') and
-            #                                    'jobElement' in ' '.join(tag.get('class', [])) and
-            #                                    'row' in ' '.join(tag.get('class', [])))
             job_rows = soup.find_all('a', class_='row jobElement pt-2 pb-2 text-decoration-none')
                 
             print(f"Found {len(job_rows)} job listings")
-            #if not job_rows:
                 
             content = []
             for job in job_rows:
@@ -4609,7 +4556,7 @@ class Crawler:
                 # WebDriver initialisieren
                 driver = webdriver.Chrome(options=chrome_options)
                 driver.set_page_load_timeout(30)
-                
+               
                 try:
                     print("Loading page...")
                     driver.get(url)
@@ -4736,7 +4683,8 @@ class Crawler:
                 
             next_page = None
             print(f"Found {len(content)} jobs")
-            return content, next_page   
+            return content, next_page
+          
     
     def crawl_liechtensteinlandes(self, url, keywords):
         """Function to crawl Liechtenstein Landesverwaltung"""
@@ -4786,18 +4734,14 @@ class Crawler:
                         print(f"Location: {location}")        
                     
                     ### check if any keyword is in the title, location is in Ostschweiz and is an IT job
-                        
                     if any(keyword.lower() in title.lower() for keyword in keywords) and self.is_location_in_ostschweiz(location) and self.is_it_job(title):
-                        
-                        content.append({
+                       content.append({
                             'title': title,
                             'link': link,
                             'location': location,
                             'company': company
                         })
-
                         print(f"Found matching job: {title}")
-                        
                     else:
                         print(f"Skipping non-matching job: {title}")
 
@@ -4889,6 +4833,107 @@ class Crawler:
             next_page = None
             print(f"Found {len(content)} jobs")
             return content, next_page               
+
+     
+  def crawl_kellenberger(self, url, keywords):
+        """Function to crawl Kellenberger"""    
+        print(f"Crawling Kellenberger URL: {url}")
+        
+        try:
+            response = requests.get(url, headers=self.headers, timeout=10)
+            response.raise_for_status()
+            response.encoding = 'utf-8'
+            
+            soup = BeautifulSoup(response.content, 'html.parser')
+            print(soup.prettify())
+            
+            job_segment = soup.find('div', class_='vacancy-list__items vacancy-list__items--grouped-by-name')
+            if job_segment and isinstance(job_segment, Tag):
+                print(f'Job segment is valid. Looking for job rows.')
+                job_rows = job_segment.find_all('div', class_='vacancy-list__item')
+                print(f"Found {len(job_rows)} job rows")
+            else:
+                print("Job segment is not valid or not found.")
+            
+            content = []
+            for job in job_rows:
+                try:
+                    title = job.find('a', class_='vacancy__title-link').text.strip()
+                    link = 'ttps://management.ostjob.ch' + job.find('a')['href']
+                    location = job.find('span', class_='vacancy__workplace-city').text.strip()
+                    company = 'Kellenberger'
+                    
+                    ### Check if any keyword is in the title and if it's an IT job
+                    if any(keyword.lower() in title.lower() for keyword in keywords) and self.is_it_job(title):
+                        content.append({
+                            'title': title,
+                            'link': link,
+                            'location': location,
+                            'company': company
+                        })
+                        print(f"Found matching job: {title}")
+                    else:
+                        print(f"Skipping non-matching job: {title}")
+                except Exception as e:
+                    print(f"Error during extraction: {e}")
+                    continue
+            next_page = None
+            print(f"Found {len(content)} jobs")
+            return content, next_page
+        
+        except Exception as e:
+            print(f"Error during crawl: {e}")
+            return [], None
+            
+        
+    
+    def crawl_laveba(self, url, keywords):
+        """Function to crawl Laveba Genossenscahft"""
+        print(f"Crawling Laveba URL: {url}")
+        
+        try: 
+            response = requests.get(url, headers=self.headers, timeout=10)
+            response.raise_for_status()
+            response.encoding = 'utf-8'
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            job_rows = soup.find_all('a', class_='row jobElement pt-2 pb-2 text-decoration-none')
+            if job_rows:
+                print(f"Found {len(job_rows)} job rows")
+            else:
+                print("No job rows found in the job section.")
+            
+            content = []    
+            for job in job_rows:
+                try:
+                    title = job.find('span', class_='jobName').text.strip()
+                    link = 'https://jobs.dualoo.com/portal/' + job['href']
+                    location = job.find('span', class_='cityName').text.strip()
+                    company = 'Laveba'
+
+                    ### Check if any keyword is in the title, location is in Ostschweiz and is an IT job
+                    if any(keyword.lower() in title.lower() for keyword in keywords) and self.is_location_in_ostschweiz(location) and self.is_it_job(title):
+                        content.append({
+                            'title': title,
+                            'link': link,
+                            'location': location,
+                            'company': company
+                        })
+                        print(f"Found matching job: {title}")
+                    else:
+                        print(f"Skipping non-matching job: {title}")
+                except Exception as e:
+                    print(f"Error during extraction: {e}")
+                    continue
+            next_page = None
+            print(f"Found {len(content)} jobs")
+            return content, next_page
+        
+        except Exception as e:
+            print(f"Error during crawl: {e}")
+            return [], None
+
+
         
     def __del__(self):
         """Destructor to safely close database connection"""

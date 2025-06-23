@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="google" content="notranslate" />
+    <script type="text/javascript" src="/eel.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <link rel="icon" href="/img/image.ico" type="image/x-icon">
+    <script src="js/dashboards.js" defer></script>
+    <title>Job-Crawler Dashboard</title>
+</head>
+<body class="notranslate">
+    <div class="container">
+        <div class="dashboard-header">
+            <h1>Job-Crawler Dashboard</h1>
+            <button onclick="window.location.href='index.html'">Zurück zur Startseite</button>
+        </div>
+
+        <div class="dashboard-stats">
+            <div class="stat-card">
+                <div class="stat-title">Aktive Stellen</div>
+                <div class="stat-value" id="activeJobs">--</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Neue Stellen heute</div>
+                <div class="stat-value" id="newJobsToday">--</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Entfernte Stellen heute</div>
+                <div class="stat-value" id="removedJobsToday">--</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Geplante Crawls</div>
+                <div class="stat-value" id="activeCrawls">--</div>
+            </div>
+        </div>
+
+        <div class="dashboard-tables">
+            <div class="dashboard-table">
+                <h2>Stellen pro Website</h2>
+                <table id="jobsTable">
+                    <thead>
+                        <tr>
+                            <th>Website</th>
+                            <th>Stellen</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Jobs by website will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="dashboard-table">
+                <h2>Kritische Crawls</h2>
+                <table id="crawlsTable">
+                    <thead>
+                        <tr>
+                            <th>Website</th>
+                            <th>Letzter Crawl</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Recent crawls will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="dashboard-chart-container">
+            <h2>Stellen-Entwicklung (letzte 7 Tage)</h2>
+            <canvas id="jobTrendsChart"></canvas>
+        </div>
+    </div>
+</body>
+</html>

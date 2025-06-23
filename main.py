@@ -10,6 +10,7 @@ from env_utils import ensure_env_file
 from updater import update_app
 
 
+
 ### Get the application root directory
 if getattr(sys, 'frozen', False):
     APP_DIR = os.path.dirname(sys.executable)
@@ -67,6 +68,8 @@ def setup_application():
         db = Database()
         if not os.path.exists(db.db_file):
             db.initialize_database()
+        else:
+            db.update_database_schema()
         
         # Create crawler instance
         crawler = Crawler(db.db_file)
@@ -227,7 +230,34 @@ def get_startup_status():
     except Exception as e:
         logger.error(f"Error getting startup status: {e}")
         return {"status": "error", "message": str(e)}
-    
+
+
+@eel.expose
+def get_dashboard_stats():
+    """Get statistics for the dashboard"""
+    try:
+        print(f"=== DEBUG: db Variable existiert: {db is not None} ===")
+        print(f"=== DEBUG: db Type: {type(db)} ===")
+        print(f"=== DEBUG: db Object: {db} ===")
+        
+        print("=== DEBUG: Rufe db.get_dashboard_stats() auf ===")
+        stats = db.get_dashboard_stats()
+        return stats
+    except Exception as e:
+        print(f"=== ERROR in get_dashboard_stats: {e} ===")
+        print(f"=== ERROR Type: {type(e)} ===")
+        import traceback
+        print(f"=== TRACEBACK: {traceback.format_exc()} ===")
+
+        return {
+            'active_jobs': 0,
+            'new_jobs_today': 0,
+            'removed_jobs_today': 0,
+            'active_crawls': 0,
+            'jobs_per_website': [],
+            'recent_crawls': [],
+            'job_trends': {'dates': [], 'new_jobs': [], 'removed_jobs': []}
+        }
     
 def start_gui():
     app = CrawlerGUI()

@@ -302,3 +302,12 @@ select {
     background: #fafafa;
 }
 
+
+.dashboard-button {
+    background-color: #17a2b8;
+    color: white;
+}
+
+.dashboard-button:hover {
+    background-color: #138496;
+}

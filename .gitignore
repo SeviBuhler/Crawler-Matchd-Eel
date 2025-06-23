@@ -3,9 +3,11 @@
 /build/
 __pycache__/
 CrawlerEnv313/
+/chrome_data/
 
 # files to ignore
 crawls.db
 env_utils.py
 *.log
-
+testScript.py
+.env

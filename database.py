@@ -3,6 +3,8 @@ import logging
 import os
 from localities_data import LOCALITIES_DATA
 from database_config import get_db_path
+from datetime import datetime, timedelta
+
 
 
 # Configure logging
@@ -14,6 +16,14 @@ class Database:
         """Initalize Database with path from configuration"""
         self.db_file = get_db_path()
         self.ensure_db_directory()
+        
+    def _get_connection(self):
+        """Private method to create a database connection"""
+        return sqlite3.connect(self.db_file)
+        
+    def get_connection(self):
+        """Public method to get a database connection"""
+        return self._get_connection()
         
     def ensure_db_directory(self):
         """Ensure the database directory exists"""
@@ -92,11 +102,31 @@ class Database:
         CREATE TABLE IF NOT EXISTS crawl_results (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             crawl_id INTEGER,
+            crawl_url TEXT,
             title TEXT,
             company TEXT,
             location TEXT,
             link TEXT,
             crawl_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+            last_seen DATETIME DEFAULT CURRENT_TIMESTAMP,
+            is_active BOOLEAN DEFAULT 1,
+            FOREIGN KEY (crawl_id) REFERENCES crawls (id)
+        )
+        ''')
+        
+        ### Create removed_jobs table
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS removed_jobs (
+            id INTEGER PRIMARY KEY,
+            job_id INTEGER,
+            crawl_id INTEGER,
+            title TEXT,
+            company TEXT,
+            location TEXT,
+            link TEXT,
+            removal_date DATETIME,
+            notified BOOLEAN DEFAULT 0,
+            FOREIGN KEY (job_id) REFERENCES crawl_results (id) ON DELETE SET NULL,
             FOREIGN KEY (crawl_id) REFERENCES crawls (id)
         )
         ''')
@@ -124,6 +154,61 @@ class Database:
         VALUES ('email_time', '15:30')            
         ''')
         
+        ### Create failed_crawls table
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS failed_crawls (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            crawl_id INTEGER,
+            crawl_url TEXT,
+            error_message TEXT,
+            error_type TEXT,
+            failure_date DATETIME,
+            traceback TEXT,
+            notified BOOLEAN DEFAULT 0,
+            FOREIGN KEY (crawl_id) REFERENCES crawls(id)
+        )
+        ''')
+        
+    
+    def update_database_schema(self):
+        """Update database schema to latest version"""
+        conn = sqlite3.connect(self.db_file)
+        cursor = conn.cursor()
+
+        try:
+            # Prüfen ob failed_crawls Tabelle existiert
+            cursor.execute("""
+                SELECT name FROM sqlite_master 
+                WHERE type='table' AND name='failed_crawls'
+            """)
+
+            if not cursor.fetchone():
+                logger.info("Creating missing failed_crawls table...")
+                cursor.execute('''
+                CREATE TABLE IF NOT EXISTS failed_crawls (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    crawl_id INTEGER,
+                    crawl_url TEXT,
+                    error_message TEXT,
+                    error_type TEXT,
+                    failure_date DATETIME,
+                    traceback TEXT,
+                    notified BOOLEAN DEFAULT 0,
+                    FOREIGN KEY (crawl_id) REFERENCES crawls(id)
+                )
+                ''')
+                logger.info("✅ failed_crawls table created successfully")
+      
+
+            conn.commit()
+
+        except Exception as e:
+            logger.error(f"Error updating database schema: {e}")
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
+
     
     def populate_localities(self, cursor):
         """Populate the localities initial with data"""
@@ -388,6 +473,131 @@ class Database:
                 "status": "error",
                 "message": str(e)
             }
+        finally:
+            conn.close()
+            
+    
+    def get_dashboard_stats(self):
+        """Get statistics for the dashboard"""
+        print("=== DEBUG: database.get_dashboard_stats() gestartet ===")
+        conn = sqlite3.connect(self.db_file)
+        cursor = conn.cursor()
+
+        try:
+            stats = {}
+            today = datetime.now().strftime('%Y-%m-%d')
+
+            # Active jobs count
+            cursor.execute("SELECT COUNT(*) FROM crawl_results WHERE is_active = 1")
+            stats['active_jobs'] = cursor.fetchone()[0]
+
+            # New jobs today
+            cursor.execute("SELECT COUNT(*) FROM crawl_results WHERE DATE(crawl_date) = ?", (today,))
+            stats['new_jobs_today'] = cursor.fetchone()[0]
+
+            # Removed jobs today
+            cursor.execute("SELECT COUNT(*) FROM removed_jobs WHERE DATE(removal_date) = ?", (today,))
+            stats['removed_jobs_today'] = cursor.fetchone()[0]
+
+            # Active crawls count
+            cursor.execute("SELECT COUNT(*) FROM crawls")
+            stats['active_crawls'] = cursor.fetchone()[0]
+
+            # Jobs per website
+            cursor.execute("""
+                SELECT c.title, COUNT(cr.id) 
+                FROM crawl_results cr
+                JOIN crawls c ON cr.crawl_id = c.id
+                WHERE cr.is_active = 1
+                GROUP BY c.title
+                ORDER BY COUNT(cr.id) DESC
+                LIMIT 10
+            """)
+            stats['jobs_per_website'] = cursor.fetchall()
+
+            # Failed crawls
+            cursor.execute("""
+                SELECT c.title, 
+                       COALESCE(MAX(fc.failure_date), 'Never') as last_activity,
+                       CASE 
+                           WHEN fc.id IS NOT NULL THEN 0  -- Hat Eintrag in failed_crawls → Fehlgeschlagen
+                           ELSE 1  -- Kein Eintrag in failed_crawls → Erfolgreich
+                       END as success
+                FROM crawls c
+                LEFT JOIN failed_crawls fc ON c.id = fc.crawl_id
+                GROUP BY c.id, c.title
+                ORDER BY last_activity DESC
+                LIMIT 20
+            """)
+            stats['recent_crawls'] = cursor.fetchall()
+
+            # Job trends for the last 7 days
+            dates = []
+            new_jobs = []
+            removed_jobs = []
+
+            for i in range(6, -1, -1):
+                date = (datetime.now() - timedelta(days=i)).strftime('%Y-%m-%d')
+                dates.append(date)
+
+                # New jobs for this date
+                cursor.execute("SELECT COUNT(*) FROM crawl_results WHERE DATE(crawl_date) = ?", (date,))
+                new_jobs.append(cursor.fetchone()[0])
+
+                # Removed jobs for this date
+                cursor.execute("SELECT COUNT(*) FROM removed_jobs WHERE DATE(removal_date) = ?", (date,))
+                removed_jobs.append(cursor.fetchone()[0])
+
+            stats['job_trends'] = {
+                'dates': dates,
+                'new_jobs': new_jobs,
+                'removed_jobs': removed_jobs
+            }
+
+            return stats
+
+        except Exception as e:
+            print(f"=== ERROR in database.get_dashboard_stats: {e} ===")
+            import traceback
+            print(f"=== DATABASE TRACEBACK: {traceback.format_exc()} ===")
+            logger.error(f"Error getting dashboard stats: {e}")
+            return {
+                'active_jobs': 0,
+                'new_jobs_today': 0,
+                'removed_jobs_today': 0,
+                'active_crawls': 0,
+                'jobs_per_website': [],
+                'recent_crawls': [],
+                'job_trends': {'dates': [], 'new_jobs': [], 'removed_jobs': []}
+            }
+        finally:
+            conn.close()
+            
+            
+    def add_failed_crawl(self, crawl_id, crawl_url, error_message, error_type, traceback_str):
+        """Add a failed crawl to the database"""
+        conn = sqlite3.connect(self.db_file)
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute('''
+                INSERT INTO failed_crawls (crawl_id, crawl_url, error_message, error_type, failure_date, traceback)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (
+                crawl_id,
+                crawl_url, 
+                error_message,
+                error_type,
+                datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                traceback_str
+            ))
+            conn.commit()
+            logger.info(f"Failed crawl recorded for crawl_id {crawl_id}")
+            return {"status": "success"}
+        except Exception as e:
+            conn.rollback()
+            logger.error(f"Error recording failed crawl: {e}")
+            return {"status": "error", "message": str(e)}
         finally:
             conn.close()
     

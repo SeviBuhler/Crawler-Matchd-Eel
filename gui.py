@@ -149,6 +149,18 @@ class CrawlerGUI:
 
                 ### Initialize new Eel instance
                 eel.init(web_path, allowed_extensions=['.js', '.html', '.css'])
+                
+                appdata_dir = os.getenv('APPDATA')
+                if appdata_dir:
+                    chrome_data_dir = os.path.join(appdata_dir, 'JobCrawler', 'chrome_data')
+                else:
+                    # Fallback zu temp directory
+                    import tempfile
+                    chrome_data_dir = os.path.join(tempfile.gettempdir(), 'JobCrawler_chrome_data')
+                
+                # Stelle sicher dass das Verzeichnis existiert
+                os.makedirs(chrome_data_dir, exist_ok=True)
+                logger.info(f"Chrome data directory: {chrome_data_dir}")
 
                 try:
                     options = {
@@ -158,7 +170,7 @@ class CrawlerGUI:
                         'disable_cache': True,
                         'cmdline_args': [
                             '--disable-http-cache',
-                            '--user-data-dir=' + os.path.join(APP_DIR, 'chrome_data'),
+                            f'--user-data-dir={chrome_data_dir}',
                             '--new-window', 
                             '--disable-features=PromptOnExit'
                         ]
@@ -193,7 +205,13 @@ class CrawlerGUI:
             self.current_port = None
             
             ### Clean up Chrome data directory
-            chrome_data_dir = os.path.join(APP_DIR, 'chrome_data')
+            appdata_dir = os.getenv('APPDATA')
+            if appdata_dir:
+                chrome_data_dir = os.path.join(appdata_dir, 'JobCrawler', 'chrome_data')
+            else:
+                import tempfile
+                chrome_data_dir = os.path.join(tempfile.gettempdir(), 'JobCrawler_chrome_data')
+                
             if os.path.exists(chrome_data_dir):
                 try:
                     import shutil

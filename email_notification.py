@@ -114,52 +114,33 @@ class EmailNotifier:
             
     
     def get_removed_jobs(self, mark_as_notified=False):
-        """Get jobs that were removed since the last report"""
+        """Get jobs that have been removed and optionally mark them as notified"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
         try:
-            conn = sqlite3.connect(self.db_path)
-            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT r.job_id, r.title, r.company, r.location, r.link, r.removal_date, 
+                       COALESCE(c.title, 'Unknown Crawl') as crawl_title
+                FROM removed_jobs r
+                LEFT JOIN crawls c ON r.crawl_id = c.id
+                WHERE r.notified = 0
+            """)
+            removed_jobs = cursor.fetchall()
 
-            # Debug: Check if we have any removed jobs at all
-            cursor.execute("SELECT COUNT(*) FROM removed_jobs")
-            total_removed = cursor.fetchone()[0]
-            logger.info(f"Total removed jobs in database: {total_removed}")
+            # Mark these jobs as notified if requested
+            if mark_as_notified and removed_jobs:
+                cursor.execute("UPDATE removed_jobs SET notified = 1 WHERE notified = 0")
+                conn.commit()
+                logger.info("Marked removed jobs as notified")
 
-            # Debug: Check notified status
-            cursor.execute("SELECT COUNT(*) FROM removed_jobs WHERE notified = 0")
-            unnotified = cursor.fetchone()[0]
-            logger.info(f"Unnotified removed jobs: {unnotified}")
-
-            # Get removed jobs that haven't been notified yet
-            try:
-                cursor.execute("""
-                    SELECT r.job_id, r.title, r.company, r.location, r.link, r.removal_date, c.title
-                    FROM removed_jobs r
-                    JOIN crawls c ON r.crawl_id = c.id
-                    WHERE r.notified = 0
-                """)
-
-                removed_jobs = cursor.fetchall()
-                logger.info(f"Found {len(removed_jobs)} removed jobs to report")
-
-                # Mark these jobs as notified
-                if removed_jobs:
-                    cursor.execute("UPDATE removed_jobs SET notified = 1 WHERE notified = 0")
-                    conn.commit()
-                    logger.info("Marked removed jobs as notified")
-
-                return removed_jobs
-            except Exception as e:
-                logger.error(f"Error in SQL query for removed jobs: {e}")
-                import traceback
-                traceback.print_exc()
-                return []
+            return removed_jobs
 
         except Exception as e:
             logger.error(f"Error getting removed jobs: {e}")
             return []
         finally:
-            if 'conn' in locals():
-                conn.close()
+            conn.close()
             
     
     def get_recipient_emails(self):
@@ -358,8 +339,7 @@ class EmailNotifier:
                 logger.warning("No recipients found in database")
                 return
             
-            # Get removed jobs - don't mark as notified yet
-            removed_jobs = self.get_removed_jobs(mark_as_notified=False)
+            removed_jobs = self.get_removed_jobs(mark_as_notified=True)
 
             ### Format the email content
             html_content = self.format_email_content(results, removed_jobs)
@@ -382,19 +362,12 @@ class EmailNotifier:
                     logger.error("SMTP username or password is not set.")
                     return
                 server.send_message(msg)
-                if removed_jobs:
-                    conn = sqlite3.connect(self.db_path)
-                    cursor = conn.cursor()
-                    cursor.execute("UPDATE removed_jobs SET notified = 1 WHERE notified = 0")
-                    conn.commit()
-                    conn.close()
-                    logger.info(f"Marked {len(removed_jobs)} removed jobs as notified")
-            
+
             logger.info(f"Daily report sent successfully to {len(recipients)} recipients")
-            
+
         except Exception as e:
             logger.error(f"Error sending daily report: {e}")
-            
+
     
 def send_failure_email(subject, message):
     """Send email notification for failed crawls"""

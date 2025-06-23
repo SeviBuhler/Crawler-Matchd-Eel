@@ -42,7 +42,7 @@ function updateDashboard(data) {
         });
     }
     
-    // Update critical crawls table
+    // Update crawls table
     const crawlsTable = document.getElementById('crawlsTable').getElementsByTagName('tbody')[0];
     crawlsTable.innerHTML = '';
     
@@ -99,44 +99,83 @@ function loadScript(url) {
 }
 
 function createJobTrendsChart(trendsData) {
-    const ctx = document.getElementById('jobTrendsChart').getContext('2d');
-    
-    // Destroy existing chart if it exists
-    if (window.jobTrendsChart) {
-        window.jobTrendsChart.destroy();
+    console.log('Creating job trends chart with data:', trendsData);
+
+    // Check if Chart.js is loaded
+    if (typeof Chart === 'undefined') {
+        console.error('Chart.js is not loaded. Cannot create chart.');
+        return;
     }
+
+    // Secure destroy of existing chart
+    if (window.jobTrendsChart && window.jobTrendsChart.destroy === 'function') {
+        try {
+            window.jobTrendsChart.destroy();
+        } catch (e) {
+            console.error('Error destroying existing chart:', e);
+        }
+    }
+
+    // Check the canvas chart element
+    const canvas = document.getElementById('jobTrendsChart');
+    if (!canvas) {
+        console.error('Canvas element for job trends chart not found.');
+        return;
+    }
+    const ctx = canvas.getContext('2d');
     
-    window.jobTrendsChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: trendsData.dates,
-            datasets: [
-                {
-                    label: 'Neue Stellen',
-                    data: trendsData.new_jobs,
-                    borderColor: 'rgb(75, 192, 192)',
-                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                    tension: 0.1
+    try {
+        window.jobTrendsChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: trendsData.dates || [],
+                datasets: [
+                    {
+                        label: 'Neue Stellen',
+                        data: trendsData.new_jobs || [],
+                        borderColor: 'rgb(34, 197, 94)',
+                        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                        tension: 0.1
+                    },
+                    {
+                        label: 'Entfernte Stellen',
+                        data: trendsData.removed_jobs || [],
+                        borderColor: 'rgb(239, 68, 68)',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        tension: 0.1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Stellen-Entwicklung (letzte 30 Tage)'
+                    }
                 },
-                {
-                    label: 'Entfernte Stellen',
-                    data: trendsData.removed_jobs,
-                    borderColor: 'rgb(255, 99, 132)',
-                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
-                    tension: 0.1
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        precision: 0
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            maxTicksLimit: 10,
+                            callback: function(value, index, values) {
+                                return index % 3 === 0 ? this.getLabelForValue(value) : '';
+                            }
+                        }
                     }
                 }
             }
-        }
-    });
+        });
+        
+        console.log('Chart erfolgreich erstellt!');
+        
+    } catch (error) {
+        console.error('Fehler beim Erstellen des Charts:', error);
+    }
 }

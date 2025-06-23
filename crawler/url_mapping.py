@@ -72,6 +72,11 @@ def get_crawler_method(url):
         'management.ostjob.ch/minisite/62': lambda: _get_kellenberger_crawler(),
         'jobs.dualoo.com/portal/elj8aw7v': lambda: _get_laveba_crawler(),
         'join.com/companies/emonitor': lambda: _get_emonitor_crawler(),
+        'xitrust.com/ch/ueber-uns/jobs/': lambda: _get_xitrust_crawler(),
+        'migros-gruppe.jobs/de/unsere-unternehmen/': lambda: _get_migros_crawler(),
+        'swiss-mait.career.softgarden.de/': lambda: _get_mait_crawler(),
+        'careers.smartrecruiters.com/LiechtensteinischeLandesverwaltung': lambda: _get_liechtensteinlandesverwaltung_crawler(),
+        'www.hostpoint.ch/jobs/': lambda: _get_hostpoint_crawler(),
     }
     
     for domain, crawler_loader in url_mappings.items():
@@ -351,3 +356,23 @@ def _get_laveba_crawler():
 def _get_emonitor_crawler():
     from .crawlMethods.emonitor import crawl_emonitor
     return crawl_emonitor
+
+def _get_xitrust_crawler():
+    from .crawlMethods.xitrust import crawl_xitrust
+    return crawl_xitrust
+
+def _get_migros_crawler():
+    from .crawlMethods.migros import crawl_migros
+    return crawl_migros
+
+def _get_mait_crawler():
+    from .crawlMethods.mait import crawl_mait
+    return crawl_mait
+
+def _get_liechtensteinlandesverwaltung_crawler():
+    from .crawlMethods.liechtensteinlandesverwaltung import crawl_liechtensteinlandesverwaltung
+    return crawl_liechtensteinlandesverwaltung
+
+def _get_hostpoint_crawler():
+    from .crawlMethods.hostpoint import crawl_hostpoint
+    return crawl_hostpoint

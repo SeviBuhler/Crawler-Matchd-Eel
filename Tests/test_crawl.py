@@ -16,7 +16,7 @@ def test_crawl():
     crawler = Crawler()
     
     # Test parameters
-    test_url = "https://www.hostpoint.ch/jobs/"
+    test_url = "https://jobs.dualoo.com/portal/ppqp7jqv?lang=DE"
     test_keywords = ['praktikant', 'praktikum', 'werkstudent', 'lehrstelle']
     
     print(f"Testing URL: {test_url}")

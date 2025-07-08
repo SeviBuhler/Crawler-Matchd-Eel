@@ -53,7 +53,7 @@ CRAWLS_DATA = [
     ("SGKB", "https://www.sgkb.ch/de/ueber-uns/karriere/stellenangebote", "10:33", "Wed", ["praktikum", "praktika", "praktikant", "werkstudent", "student", "studium"]),
     ("SAK", "https://karriere.sak.ch/go/SAK-Jobs/9138055/", "10:36", "Wed", ["praktikum", "praktika", "praktikant", "werkstudent", "student", "studium"]),
     ("Psychiatrie SG", "https://ohws.prospective.ch/public/v1/careercenter/1005765/?lang=de&limit=300", "10:39", "Wed", ["praktikum", "praktika", "praktikant", "werkstudent", "student", "studium"]),
-    ("Permapack", "https://permapack.ch/de/unternehmen/jobs", "10:42", "Wed", ["praktikum", "praktika", "praktikant", "werkstudent", "student", "studium"]),
+    ("Permapack", "https://jobs.dualoo.com/portal/ppqp7jqv?lang=DE", "10:42", "Wed", ["praktikum", "praktika", "praktikant", "werkstudent", "student", "studium"]),
     ("Permapack Lehrstellen", "https://jobs.dualoo.com/portal/761twmr4?lang=DE", "10:45", "Wed", ["praktikum", "praktika", "praktikant", "werkstudent", "student", "studium"]),
     ("Permapack Schnupperstellen", "https://jobs.dualoo.com/portal/4tgi9rpu?lang=DE", "10:48", "Wed", ["praktikum", "praktika", "praktikant", "werkstudent", "student", "studium"]),
     ("Optimatik", "https://optimatik.ch/jobs", "10:51", "Wed", ["praktikum", "praktika", "praktikant", "werkstudent", "student", "studium"]),
